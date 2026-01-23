@@ -4,7 +4,7 @@ beautifulsoup4==4.12.3
 requests==2.32.3
 pydantic==2.10.3
 python-dotenv==1.0.1
-api-analytics==1.5.4
+api-analytics==1.2.7
 
 # Testing
 pytest==8.3.4
