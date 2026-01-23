@@ -78,10 +78,29 @@ def rate_limit_dependency(request: Request):
         logger.warning(f"Rate limit exceeded for IP {client_ip}: {current_count}/{RATE_LIMIT} requests in {RATE_WINDOW}s")
         raise HTTPException(
             status_code=429,
-            detail=f"Rate limit exceeded ({RATE_LIMIT} requests per {RATE_WINDOW} seconds). Try again later."
+            detail=f"Rate limit exceeded ({RATE_LIMIT} requests per {RATE_LIMIT} seconds). Try again later."
         )
     request_times[client_ip].append(now)
     logger.debug(f"Rate limit check passed for IP {client_ip}: {current_count + 1}/{RATE_LIMIT} requests")
+
+# API Key authentication
+def verify_api_key(request: Request):
+    api_key = request.headers.get("X-API-Key")
+    expected_key = os.getenv("API_SECRET_KEY")
+
+    if not expected_key:
+        logger.error("API_SECRET_KEY not configured in environment")
+        raise HTTPException(status_code=500, detail="API authentication not configured")
+
+    if not api_key:
+        logger.warning(f"Missing API key from IP {request.client.host}")
+        raise HTTPException(status_code=401, detail="Missing X-API-Key header")
+
+    if api_key != expected_key:
+        logger.warning(f"Invalid API key attempt from IP {request.client.host}")
+        raise HTTPException(status_code=403, detail="Invalid API key")
+
+    logger.debug(f"API key verified for IP {request.client.host}")
 
 class Reference(BaseModel):
     number: int
@@ -197,7 +216,7 @@ async def read_root():
             status_code=404
         )
 
-@app.get("/page/{slug:path}", response_model=Page, dependencies=[Depends(rate_limit_dependency)])
+@app.get("/page/{slug:path}", response_model=Page, dependencies=[Depends(rate_limit_dependency), Depends(verify_api_key)])
 async def get_page(
     slug: str,
     extract_refs: bool = Query(True),
@@ -277,7 +296,7 @@ async def get_page(
 
     return page
 
-@app.get("/sitemap-index", dependencies=[Depends(rate_limit_dependency)])
+@app.get("/sitemap-index", dependencies=[Depends(rate_limit_dependency), Depends(verify_api_key)])
 async def get_sitemap_index():
     """
     Fetch Grokipedia's sitemap index XML.
@@ -299,7 +318,7 @@ async def get_sitemap_index():
         raise HTTPException(status_code=502, detail=f"Failed to fetch sitemap index: {str(e)}")
 
 
-@app.get("/sitemap", dependencies=[Depends(rate_limit_dependency)])
+@app.get("/sitemap", dependencies=[Depends(rate_limit_dependency), Depends(verify_api_key)])
 async def get_sitemap(url: str = Query(..., description="Sitemap URL to fetch")):
     """
     Fetch individual sitemap XML file.

@@ -41,10 +41,16 @@ export async function fetchGrokipediaArticle(
 
   try {
     const apiUrl = process.env.GROKIPEDIA_API_URL || 'http://localhost:8000';
+    const apiKey = process.env.GROKIPEDIA_API_KEY;
     console.log(`[Grokipedia] Backend URL: ${apiUrl}/page/${slug}`);
 
     const response = await fetch(
-      `${apiUrl}/page/${encodeURIComponent(slug)}`
+      `${apiUrl}/page/${encodeURIComponent(slug)}`,
+      {
+        headers: {
+          'X-API-Key': apiKey || '',
+        },
+      }
     );
 
     if (!response.ok) {

@@ -31,6 +31,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           GROKIPEDIA_API_URL: ${{ secrets.GROKIPEDIA_API_URL }}
+          GROKIPEDIA_API_KEY: ${{ secrets.GROKIPEDIA_API_KEY }}
 
       - name: Notify on success
         if: success()

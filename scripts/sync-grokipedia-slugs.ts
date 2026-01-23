@@ -29,6 +29,12 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const GROKIPEDIA_API_URL = process.env.GROKIPEDIA_API_URL || 'http://localhost:8000';
+const GROKIPEDIA_API_KEY = process.env.GROKIPEDIA_API_KEY;
+
+if (!GROKIPEDIA_API_KEY) {
+  console.error('❌ Error: Missing GROKIPEDIA_API_KEY in .env.local');
+  process.exit(1);
+}
 
 interface SitemapEntry {
   slug: string;
@@ -38,7 +44,11 @@ interface SitemapEntry {
 
 async function fetchSitemapIndex(): Promise<string[]> {
   console.log('📥 Fetching sitemap index via backend API...');
-  const response = await fetch(`${GROKIPEDIA_API_URL}/sitemap-index`);
+  const response = await fetch(`${GROKIPEDIA_API_URL}/sitemap-index`, {
+    headers: {
+      'X-API-Key': GROKIPEDIA_API_KEY!,
+    },
+  });
   if (!response.ok) {
     throw new Error(`Backend API returned ${response.status}: ${response.statusText}`);
   }
@@ -57,7 +67,11 @@ async function fetchSitemapIndex(): Promise<string[]> {
 }
 
 async function fetchSitemap(sitemapUrl: string): Promise<SitemapEntry[]> {
-  const response = await fetch(`${GROKIPEDIA_API_URL}/sitemap?url=${encodeURIComponent(sitemapUrl)}`);
+  const response = await fetch(`${GROKIPEDIA_API_URL}/sitemap?url=${encodeURIComponent(sitemapUrl)}`, {
+    headers: {
+      'X-API-Key': GROKIPEDIA_API_KEY!,
+    },
+  });
   if (!response.ok) {
     throw new Error(`Backend API returned ${response.status}: ${response.statusText}`);
   }
