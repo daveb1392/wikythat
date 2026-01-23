@@ -54,11 +54,11 @@ export default function RootLayout({
           </div>
 
           {/* Ad Slot - Header Leaderboard (728x90) */}
-          <div className="container mx-auto px-4 py-2">
+          {/* <div className="container mx-auto px-4 py-2">
             <div className="bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-gray-500 text-sm font-medium" style={{ height: '90px', maxWidth: '728px', margin: '0 auto' }}>
               Ad Space - 728x90 Leaderboard
             </div>
-          </div>
+          </div> */}
         </header>
 
         <div className="flex-1">{children}</div>
@@ -71,17 +71,20 @@ export default function RootLayout({
               </p>
 
               {/* Ad Slot - Footer Medium Rectangle (300x250) */}
-              <div className="bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-gray-500 text-sm font-medium mb-6" style={{ height: '250px', maxWidth: '300px', margin: '0 auto 1.5rem' }}>
+              {/* <div className="bg-gray-100 border border-gray-300 rounded flex items-center justify-center text-gray-500 text-sm font-medium mb-6" style={{ height: '250px', maxWidth: '300px', margin: '0 auto 1.5rem' }}>
                 Ad Space - 300x250 Rectangle
-              </div>
+              </div> */}
 
               <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-600 mb-4">
                 <span>© {new Date().getFullYear()} Wikithat</span>
                 <span className="hidden sm:inline">•</span>
                 <span>Data from Wikipedia & Grokipedia</span>
               </div>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 mb-2">
                 Not affiliated with Wikipedia or Grokipedia
+              </p>
+              <p className="text-xs text-gray-600 font-medium">
+                Powered by Grok · Built with ❤️
               </p>
             </div>
           </div>
