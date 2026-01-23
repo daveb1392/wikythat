@@ -13,7 +13,8 @@ interface PageProps {
   params: Promise<{ topic: string }>;
 }
 
-export const revalidate = 86400; // 24 hour ISR
+export const revalidate = 0; // Always fetch fresh data
+export const dynamic = 'force-dynamic'; // Disable static generation
 
 export async function generateStaticParams() {
   return seedTopics.map((topic) => ({

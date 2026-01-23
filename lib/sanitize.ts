@@ -40,7 +40,21 @@ export function sanitizeInput(input: string, maxLength: number = 200): string {
  * Validate slug format (for Grokipedia scraping)
  */
 export function validateSlug(slug: string): boolean {
-  // Only allow alphanumeric, hyphens, underscores, and spaces
-  const slugPattern = /^[a-zA-Z0-9\s_-]+$/;
-  return slugPattern.test(slug) && slug.length > 0 && slug.length <= 200;
+  // Just check length and that it's not empty
+  // Allow any characters - Grokipedia uses (), ., etc in URLs
+  return slug.length > 0 && slug.length <= 200;
+}
+
+/**
+ * Validate that URL is from an allowed domain
+ */
+export function validateUrl(url: string, allowedDomains: string[]): boolean {
+  try {
+    const parsedUrl = new URL(url);
+    return allowedDomains.some(domain =>
+      parsedUrl.hostname === domain || parsedUrl.hostname.endsWith(`.${domain}`)
+    );
+  } catch {
+    return false;
+  }
 }

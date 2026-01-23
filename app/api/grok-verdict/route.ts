@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ratelimit, getClientIdentifier } from '@/lib/rate-limit';
-import { sanitizeInput } from '@/lib/sanitize';
+import { sanitizeInput, validateUrl } from '@/lib/sanitize';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,6 +47,21 @@ export async function POST(request: NextRequest) {
     const sanitizedTopic = sanitizeInput(topic, 200);
     const sanitizedWikiUrl = sanitizeInput(wikipediaUrl, 500);
     const sanitizedGrokUrl = sanitizeInput(grokipediaUrl, 500);
+
+    // Validate URLs are from allowed domains only
+    if (!validateUrl(sanitizedWikiUrl, ['wikipedia.org'])) {
+      return NextResponse.json(
+        { error: 'Invalid Wikipedia URL' },
+        { status: 400 }
+      );
+    }
+
+    if (!validateUrl(sanitizedGrokUrl, ['grokipedia.com'])) {
+      return NextResponse.json(
+        { error: 'Invalid Grokipedia URL' },
+        { status: 400 }
+      );
+    }
 
     // No caching - Grok reads live articles and may give updated analysis
     // Generate verdict using Grok API
