@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { sanitizeInput } from '@/lib/sanitize';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 /**
  * Check if a Grokipedia slug exists in our cache
  * GET /api/check-grokipedia-slug?slug=Bill_Clinton

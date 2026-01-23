@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ratelimit, getClientIdentifier } from '@/lib/rate-limit';
 import { sanitizeInput } from '@/lib/sanitize';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   // Rate limiting
   const identifier = getClientIdentifier(request);

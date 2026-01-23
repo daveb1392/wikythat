@@ -3,6 +3,9 @@ import * as cheerio from 'cheerio';
 import { ratelimit, getClientIdentifier } from '@/lib/rate-limit';
 import { sanitizeInput, validateSlug } from '@/lib/sanitize';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   // Rate limiting
   const identifier = getClientIdentifier(request);
