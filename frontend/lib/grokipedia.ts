@@ -36,8 +36,22 @@ export async function fetchGrokipediaArticle(
 
   console.log(`[Grokipedia] ❌ CACHE MISS for "${topic}" - calling Python backend`);
 
-  // Call Python Grokipedia API
-  const slug = topic.replace(/\s+/g, '_');
+  // Look up correct slug from grokipedia_slugs table (case-insensitive)
+  const tentativeSlug = topic.replace(/\s+/g, '_');
+
+  const { data: slugData } = await supabase
+    .from('grokipedia_slugs')
+    .select('slug')
+    .ilike('slug', tentativeSlug)
+    .single();
+
+  const slug = slugData?.slug || tentativeSlug;
+
+  if (slugData?.slug) {
+    console.log(`[Grokipedia] 🔍 Found exact slug in database: "${slug}"`);
+  } else {
+    console.log(`[Grokipedia] ⚠️  Slug not found in database, using fallback: "${slug}"`);
+  }
 
   try {
     const apiUrl = process.env.GROKIPEDIA_API_URL || 'http://localhost:8000';
