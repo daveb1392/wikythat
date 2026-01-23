@@ -26,34 +26,12 @@ export default function SearchBar() {
 
     debounceTimer.current = setTimeout(async () => {
       try {
-        // Fetch Wikipedia suggestions
+        // Fetch Wikipedia suggestions - show all results
+        // Grokipedia availability will be checked on the comparison page
         const wikiResponse = await fetch(`/api/search-wikipedia?q=${encodeURIComponent(query)}`);
         const wikiResults = await wikiResponse.json();
 
-        if (wikiResults.length === 0) {
-          setSuggestions([]);
-          setIsLoading(false);
-          return;
-        }
-
-        // Convert Wikipedia titles to Grokipedia slugs
-        const slugs = wikiResults.map((title: string) => title.replace(/\s+/g, '_'));
-
-        // Batch check if slugs exist in Grokipedia
-        const slugCheckResponse = await fetch('/api/check-grokipedia-slug', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slugs }),
-        });
-
-        const slugCheckData = await slugCheckResponse.json();
-
-        // Filter to only show results where both Wikipedia and Grokipedia have the article
-        const filteredResults = wikiResults.filter((_: string, index: number) => {
-          return slugCheckData.results[index]?.exists === true;
-        });
-
-        setSuggestions(filteredResults);
+        setSuggestions(wikiResults);
       } catch (error) {
         console.error('Search error:', error);
         setSuggestions([]);
@@ -71,12 +49,22 @@ export default function SearchBar() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      const searchTopic = selectedIndex >= 0 ? suggestions[selectedIndex] : query;
-      setIsNavigating(true); // Show loading modal
+
+    // Only allow navigation if a suggestion is selected OR there are suggestions (auto-select first)
+    if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+      // User selected a suggestion with arrow keys
+      const searchTopic = suggestions[selectedIndex];
+      setIsNavigating(true);
+      router.push(`/compare/${encodeURIComponent(searchTopic)}`);
+      setSuggestions([]);
+    } else if (suggestions.length > 0) {
+      // Auto-select first suggestion when user presses Enter
+      const searchTopic = suggestions[0];
+      setIsNavigating(true);
       router.push(`/compare/${encodeURIComponent(searchTopic)}`);
       setSuggestions([]);
     }
+    // If no suggestions, do nothing (prevents navigation to invalid topics)
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -110,7 +98,7 @@ export default function SearchBar() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search any topic..."
+            placeholder="Search any topic (select from suggestions)..."
             className="w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-lg focus:border-blue-500 focus:outline-none"
           />
           <button
@@ -141,6 +129,15 @@ export default function SearchBar() {
       {isLoading && suggestions.length === 0 && query.length >= 2 && (
         <div className="absolute right-24 top-1/2 -translate-y-1/2">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+        </div>
+      )}
+
+      {/* No results message */}
+      {!isLoading && suggestions.length === 0 && query.length >= 2 && (
+        <div className="absolute z-10 mt-2 w-full rounded-lg border border-yellow-300 bg-yellow-50 p-4 shadow-lg">
+          <p className="text-sm text-yellow-800">
+            <strong>No matches found.</strong> Try a different search term.
+          </p>
         </div>
       )}
 

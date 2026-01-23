@@ -18,6 +18,8 @@ export interface WikipediaResult {
 export async function fetchWikipediaArticle(
   title: string
 ): Promise<WikipediaResult | null> {
+  console.log(`[Wikipedia] Fetching article: "${title}"`);
+
   // Check Supabase cache first
   const { data: cached } = await supabase
     .from('articles')
@@ -27,6 +29,7 @@ export async function fetchWikipediaArticle(
     .single();
 
   if (cached) {
+    console.log(`[Wikipedia] ✅ CACHE HIT for "${title}"`);
     return {
       title: cached.title,
       extract: cached.extract,
@@ -47,6 +50,8 @@ export async function fetchWikipediaArticle(
     };
   }
 
+  console.log(`[Wikipedia] ❌ CACHE MISS for "${title}" - fetching from Wikipedia API`);
+
   try {
     const encodedTitle = encodeURIComponent(title);
     const response = await fetch(
@@ -60,6 +65,7 @@ export async function fetchWikipediaArticle(
     );
 
     if (!response.ok) {
+      console.warn(`[Wikipedia] ⚠️  API returned ${response.status} for "${title}"`);
       return null;
     }
 
@@ -81,14 +87,16 @@ export async function fetchWikipediaArticle(
       url: result.content_urls?.desktop.page,
     });
 
+    console.log(`[Wikipedia] 💾 Cached article for "${title}"`);
     return result;
   } catch (error) {
-    console.error('Wikipedia API error:', error);
+    console.error(`[Wikipedia] ❌ Error fetching "${title}":`, error);
     return null;
   }
 }
 
 export async function searchWikipedia(query: string): Promise<string[]> {
+  console.log(`[Wikipedia] Search query: "${query}"`);
   try {
     const encodedQuery = encodeURIComponent(query);
     const response = await fetch(
@@ -101,13 +109,16 @@ export async function searchWikipedia(query: string): Promise<string[]> {
     );
 
     if (!response.ok) {
+      console.warn(`[Wikipedia] Search API returned ${response.status}`);
       return [];
     }
 
     const data = await response.json();
-    return data[1] || []; // OpenSearch returns [query, [titles], [descriptions], [urls]]
+    const results = data[1] || []; // OpenSearch returns [query, [titles], [descriptions], [urls]]
+    console.log(`[Wikipedia] Search results: ${results.length} matches for "${query}"`);
+    return results;
   } catch (error) {
-    console.error('Wikipedia search error:', error);
+    console.error(`[Wikipedia] Search error for "${query}":`, error);
     return [];
   }
 }

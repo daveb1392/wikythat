@@ -13,6 +13,26 @@ interface ComparisonPanelProps {
   } | null;
 }
 
+// Extract first paragraph and truncate to character limit
+function truncateToFirstParagraph(text: string, maxChars: number = 400): string {
+  // Split by double newlines to get paragraphs
+  const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
+
+  // Skip common headers (Fact-checked by Grok, timestamps, short titles)
+  // Find the first substantial paragraph (> 100 chars is likely real content)
+  const contentParagraph = paragraphs.find(p => p.length > 100) || paragraphs[0] || text;
+
+  // Truncate to max characters
+  if (contentParagraph.length <= maxChars) {
+    return contentParagraph;
+  }
+
+  // Truncate at word boundary
+  const truncated = contentParagraph.substring(0, maxChars);
+  const lastSpace = truncated.lastIndexOf(' ');
+  return truncated.substring(0, lastSpace > 0 ? lastSpace : maxChars) + '...';
+}
+
 export default function ComparisonPanel({
   source,
   data,
@@ -91,7 +111,9 @@ export default function ComparisonPanel({
 
       <h3 className="mb-3 text-xl font-semibold">{data.title}</h3>
 
-      <p className="mb-4 flex-1 whitespace-pre-line text-gray-700">{data.extract}</p>
+      <p className="mb-4 flex-1 whitespace-pre-line text-gray-700">
+        {truncateToFirstParagraph(data.extract)}
+      </p>
 
       {url && (
         <a

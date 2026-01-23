@@ -1,78 +1,96 @@
-# Scripts
+# Domain Analysis Scripts
 
-Maintenance and utility scripts for Wikithat.com.
+Modular scripts for automated domain valuation and metrics tracking. Designed to be portable across projects.
 
-## Grokipedia Slug Sync
+## Scripts
 
-### `sync-grokipedia-slugs.ts`
+### 1. `fetch-domain-metrics.ts`
+Fetches comprehensive domain metrics from DataForSEO APIs:
+- Backlink profile (total, referring domains, dofollow/nofollow)
+- Organic keyword rankings
+- Traffic estimates
+- Technology stack
+- Top performing keywords
 
-Fetches all 6M+ article slugs from Grokipedia's sitemap and stores them in Supabase for fast lookups.
+### 2. `generate-domain-valuation.ts`
+Uses Grok AI to analyze metrics and generate:
+- Estimated market value range
+- Key strengths and competitive advantages
+- Potential use cases and business ideas
+- Monetization opportunities
+- Improvement recommendations
+- Comprehensive valuation report
 
-**What it does:**
-1. Fetches sitemap index from `https://assets.grokipedia.com/sitemap/sitemap-index.xml`
-2. Parses all 135+ sitemap files
-3. Extracts slug, title, and last modified date for each article
-4. Batch inserts/updates into `grokipedia_slugs` table
-5. Updates sync status in `grokipedia_sync_status` table
+## Usage
 
-**Usage:**
+### Manual Execution
 
 ```bash
-# One-time manual sync
-npm run sync-slugs
+# Fetch metrics for default domain (wikithat.com)
+npm run fetch-metrics
 
-# Or run directly with tsx
-npx tsx scripts/sync-grokipedia-slugs.ts
+# Fetch metrics for specific domain
+npm run fetch-metrics example.com
+
+# Generate valuation report
+npm run generate-valuation
+
+# Generate valuation for specific domain  
+npm run generate-valuation example.com
+
+# Run both (fetch + valuation)
+npm run analyze-domain
 ```
 
-**Duration:**
-- Initial sync: ~30-45 minutes (6M+ slugs)
-- Updates: ~15-30 minutes (only changed entries)
+### Environment Variables Required
 
-**Scheduling:**
+```env
+# DataForSEO API (Base64 encoded "login:password")
+DATAFORSEO_API_AUTH=your-base64-credentials
 
-For production, run this weekly via cron or GitHub Actions:
+# xAI Grok API
+XAI_API_KEY=xai-your-key-here
 
-```yaml
-# .github/workflows/sync-slugs.yml
-name: Sync Grokipedia Slugs
-on:
-  schedule:
-    - cron: '0 2 * * 0' # Every Sunday at 2 AM
-  workflow_dispatch: # Allow manual trigger
-
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      - run: npm install
-      - run: npm run sync-slugs
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-**Monitoring:**
+## Automated Execution (Cron Jobs)
 
-Check sync status via Supabase dashboard or API:
+### Monthly Schedule (Recommended)
 
-```sql
-SELECT * FROM grokipedia_sync_status ORDER BY updated_at DESC LIMIT 1;
+```bash
+# Edit crontab
+crontab -e
+
+# Add: Run on 1st of month at 2am
+0 2 1 * * cd /path/to/project && npm run analyze-domain >> /var/log/domain-analysis.log 2>&1
 ```
 
-**Troubleshooting:**
+### Alternative Schedules
 
-If sync fails mid-way:
-- The script is designed to be idempotent (can be run multiple times)
-- Already synced slugs will be updated, not duplicated
-- Check `grokipedia_sync_status.error_message` for details
+- **Weekly:** `0 2 * * 1` (Mondays at 2am)
+- **Bi-weekly:** `0 2 1,15 * *` (1st and 15th)
+- **Quarterly:** `0 2 1 1,4,7,10 *` (Jan/Apr/Jul/Oct)
 
-**Performance:**
+## Cost Per Execution
 
-- Uses batch inserts (1000 slugs per query)
-- Small 100ms delay between sitemaps to be respectful
-- Upserts on conflict, so safe to re-run
+- Backlinks: $0.02
+- Technologies: $0.01
+- Keywords: $0.10-$0.13
+- Grok Valuation: $0.01-$0.02
+- **Total: ~$0.15-$0.20/domain**
+
+Monthly cost for 1 domain: ~$0.20
+Yearly cost for 1 domain: ~$2.40
+
+## Porting to Other Projects
+
+1. Copy `scripts/` folder
+2. Copy migrations from `supabase/migrations/`
+3. Install deps: `npm install @supabase/supabase-js dotenv`
+4. Add npm scripts to `package.json`
+5. Set environment variables
+6. Run Supabase migrations
+7. Update default domain or pass as argument

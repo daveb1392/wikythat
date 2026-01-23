@@ -1,0 +1,54 @@
+name: Monthly Domain Analysis
+
+on:
+  schedule:
+    # Runs on the 1st of every month at 2:00 AM UTC
+    - cron: '0 2 1 * *'
+
+  # Allow manual trigger from Actions tab
+  workflow_dispatch:
+    inputs:
+      domain:
+        description: 'Domain to analyze (optional, defaults to wikithat.com)'
+        required: false
+        default: 'wikithat.com'
+
+jobs:
+  analyze-domain:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch domain metrics
+        env:
+          DATAFORSEO_API_AUTH: ${{ secrets.DATAFORSEO_API_AUTH }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          DOMAIN: ${{ github.event.inputs.domain || 'wikithat.com' }}
+        run: npm run fetch-metrics
+
+      - name: Generate AI valuation
+        env:
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          DOMAIN: ${{ github.event.inputs.domain || 'wikithat.com' }}
+        run: npm run generate-valuation
+
+      - name: Summary
+        run: |
+          echo "✨ Domain analysis completed successfully!"
+          echo "📊 Metrics and valuation updated in Supabase"
+          echo "🌐 Domain: ${{ github.event.inputs.domain || 'wikithat.com' }}"
+          echo "📅 Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"

@@ -15,6 +15,8 @@ function extractSummary(content: string): string {
 export async function fetchGrokipediaArticle(
   topic: string
 ): Promise<GrokipediaResult | null> {
+  console.log(`[Grokipedia] Fetching article: "${topic}"`);
+
   // Check Supabase cache first
   const { data: cached } = await supabase
     .from('articles')
@@ -24,6 +26,7 @@ export async function fetchGrokipediaArticle(
     .single();
 
   if (cached) {
+    console.log(`[Grokipedia] ✅ CACHE HIT for "${topic}"`);
     return {
       title: cached.title,
       extract: cached.extract,
@@ -31,27 +34,34 @@ export async function fetchGrokipediaArticle(
     };
   }
 
-  // Try our scraper API
+  console.log(`[Grokipedia] ❌ CACHE MISS for "${topic}" - calling Python backend`);
+
+  // Call Python Grokipedia API
   const slug = topic.replace(/\s+/g, '_');
 
   try {
+    const apiUrl = process.env.GROKIPEDIA_API_URL || 'http://localhost:8000';
+    console.log(`[Grokipedia] Backend URL: ${apiUrl}/page/${slug}`);
+
     const response = await fetch(
-      `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/scrape-grokipedia?slug=${encodeURIComponent(slug)}`
+      `${apiUrl}/page/${encodeURIComponent(slug)}`
     );
 
     if (!response.ok) {
+      console.warn(`[Grokipedia] ⚠️  Backend returned ${response.status} for "${topic}"`);
       return null;
     }
 
     const data = await response.json();
 
-    if (!data.content_text) {
-      return null;
-    }
+    // If no content, provide a fallback message instead of returning null
+    const extract = data.content_text && data.content_text.trim().length > 0
+      ? extractSummary(data.content_text)
+      : "Content not available via scraping. Grokipedia requires JavaScript rendering for full content. The page exists - visit directly to view.";
 
     const result: GrokipediaResult = {
       title: data.title || topic,
-      extract: extractSummary(data.content_text),
+      extract,
       url: data.url,
     };
 
@@ -64,9 +74,10 @@ export async function fetchGrokipediaArticle(
       url: result.url,
     });
 
+    console.log(`[Grokipedia] 💾 Cached article for "${topic}"`);
     return result;
   } catch (error) {
-    console.error('Grokipedia scraping error:', error);
+    console.error(`[Grokipedia] ❌ Error fetching "${topic}":`, error);
     return null;
   }
 }

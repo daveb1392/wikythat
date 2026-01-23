@@ -31,6 +31,14 @@ CREATE TABLE IF NOT EXISTS trust_votes (
   UNIQUE(topic, source)
 );
 
+-- Domain metrics cache table
+CREATE TABLE IF NOT EXISTS domain_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  domain TEXT NOT NULL UNIQUE,
+  metrics JSONB NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Indexes for better query performance
 CREATE INDEX IF NOT EXISTS idx_articles_topic ON articles(topic);
 CREATE INDEX IF NOT EXISTS idx_articles_source ON articles(source);

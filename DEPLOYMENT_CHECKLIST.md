@@ -31,16 +31,29 @@ Use this checklist to ensure smooth deployment to Railway.
 - [ ] New project created from GitHub repo
 - [ ] Repository connected successfully
 
-### Environment Variables
+### Backend Service (Python API)
+Deploy the Python backend separately:
+
+- [ ] Create new Railway service from `backend/` directory
+- [ ] Configure Python buildpack (detected automatically)
+- [ ] Set start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- [ ] Backend environment variables:
+  - [ ] `ANALYTICS_KEY` (optional)
+  - [ ] `HEALTH_SECRET` (required)
+- [ ] Note the Railway-generated URL (e.g., `https://backend-xxx.railway.app`)
+
+### Frontend Service Environment Variables
 Add these in Railway Dashboard → Variables:
 
 - [ ] `NEXT_PUBLIC_SUPABASE_URL`
 - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - [ ] `XAI_API_KEY`
+- [ ] `GROKIPEDIA_API_URL` (Backend Railway URL from above)
 - [ ] `NEXT_PUBLIC_SITE_URL` (will update after domain generated)
 - [ ] (Optional) `UPSTASH_REDIS_REST_URL`
 - [ ] (Optional) `UPSTASH_REDIS_REST_TOKEN`
 - [ ] (Optional) `NEXT_PUBLIC_GA_ID`
+- [ ] (Optional) `DATAFORSEO_API_AUTH`
 
 ### Domain Configuration
 - [ ] Railway domain generated (Settings → Networking)

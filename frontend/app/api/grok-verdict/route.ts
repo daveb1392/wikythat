@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ratelimit, getClientIdentifier } from '@/lib/rate-limit';
 import { sanitizeInput, validateUrl } from '@/lib/sanitize';
+import { supabase } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  console.log('[Grok Verdict] Request received');
+
   // Rate limiting
   const identifier = getClientIdentifier(request);
   const { success, limit, reset, remaining } = await ratelimit.limit(
@@ -13,6 +17,7 @@ export async function POST(request: NextRequest) {
   );
 
   if (!success) {
+    console.warn(`[Grok Verdict] Rate limit exceeded for ${identifier} - ${remaining}/${limit} remaining`);
     return NextResponse.json(
       { error: 'Too many requests. Please try again later.' },
       {
@@ -36,11 +41,14 @@ export async function POST(request: NextRequest) {
   const { topic, wikipediaUrl, grokipediaUrl } = body;
 
   if (!topic || !wikipediaUrl || !grokipediaUrl) {
+    console.warn('[Grok Verdict] Missing required fields');
     return NextResponse.json(
       { error: 'Missing required fields' },
       { status: 400 }
     );
   }
+
+  console.log(`[Grok Verdict] Processing topic: "${topic}"`);
 
   // Sanitize inputs to prevent prompt injection
   try {
@@ -63,17 +71,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // No caching - Grok reads live articles and may give updated analysis
-    // Generate verdict using Grok API
+    // Check cache first (7-day expiry)
+    const cacheCheckStart = Date.now();
+    const { data: cached } = await supabase
+      .from('comparisons')
+      .select('*')
+      .eq('topic', sanitizedTopic)
+      .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      .single();
+
+    if (cached?.verdict) {
+      const age = Math.round((Date.now() - new Date(cached.created_at).getTime()) / (1000 * 60 * 60)); // hours
+      console.log(`[Grok Verdict] ✅ CACHE HIT for "${sanitizedTopic}" (age: ${age}h, saved $0.02)`);
+      return NextResponse.json(
+        { verdict: cached.verdict },
+        {
+          headers: {
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
+            'X-XSS-Protection': '1; mode=block',
+            'X-Cache': 'HIT',
+          },
+        }
+      );
+    }
+
+    // Cache miss - generate new verdict using Grok API
+    console.log(`[Grok Verdict] ❌ CACHE MISS for "${sanitizedTopic}" - calling Grok API (cost: ~$0.02)`);
     const apiKey = process.env.XAI_API_KEY;
 
     if (!apiKey) {
+      console.error('[Grok Verdict] XAI_API_KEY not configured');
       return NextResponse.json(
         { error: 'XAI_API_KEY not configured' },
         { status: 500 }
       );
     }
 
+    const grokApiStart = Date.now();
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -152,7 +187,9 @@ Now tear into it - what is Wikipedia hiding, downplaying, or sanitizing? What do
     });
 
     if (!response.ok) {
-      console.error('Grok API error:', {
+      const grokApiTime = Date.now() - grokApiStart;
+      console.error(`[Grok Verdict] ⚠️  Grok API error (${grokApiTime}ms):`, {
+        topic: sanitizedTopic,
         status: response.status,
         statusText: response.statusText,
         // Don't log full error body in production to avoid leaking API details
@@ -165,13 +202,26 @@ Now tear into it - what is Wikipedia hiding, downplaying, or sanitizing? What do
     }
 
     const data = await response.json();
+    const grokApiTime = Date.now() - grokApiStart;
+    console.log(`[Grok Verdict] ✅ Grok API success (${grokApiTime}ms, tokens: ${data.usage?.total_tokens || 'N/A'})`);
+
     const verdict = data.choices?.[0]?.message?.content;
 
     if (!verdict) {
       throw new Error('No verdict generated');
     }
 
-    // Add security headers to response
+    // Save to cache for future requests
+    await supabase.from('comparisons').upsert({
+      topic: sanitizedTopic,
+      verdict,
+      created_at: new Date().toISOString(),
+    });
+
+    const totalTime = Date.now() - startTime;
+    console.log(`[Grok Verdict] 💾 Cached verdict for "${sanitizedTopic}" (total: ${totalTime}ms)`);
+
+    // Return verdict with security headers
     return NextResponse.json(
       { verdict },
       {
@@ -179,15 +229,18 @@ Now tear into it - what is Wikipedia hiding, downplaying, or sanitizing? What do
           'X-Content-Type-Options': 'nosniff',
           'X-Frame-Options': 'DENY',
           'X-XSS-Protection': '1; mode=block',
+          'X-Cache': 'MISS',
         },
       }
     );
   } catch (error: any) {
     if (error.message === 'Invalid input' || error.message === 'Input contains invalid content') {
+      console.warn('[Grok Verdict] Invalid input detected:', error.message);
       return NextResponse.json({ error: 'Invalid input detected' }, { status: 400 });
     }
     // Don't leak internal error details to client
-    console.error('Grok verdict error:', error.message);
+    const totalTime = Date.now() - startTime;
+    console.error(`[Grok Verdict] ❌ Error (${totalTime}ms):`, error.message);
     return NextResponse.json(
       { error: 'Failed to generate analysis. Please try again.' },
       { status: 500 }

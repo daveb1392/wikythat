@@ -22,9 +22,10 @@ export async function GET(request: NextRequest) {
 
     // Check if slug exists in cache
     const { data, error } = await supabase
-      .from('grokipedia_slugs')
-      .select('slug, title, last_modified')
-      .eq('slug', slug)
+      .from('articles')
+      .select('topic, title, updated_at')
+      .eq('topic', slug)
+      .eq('source', 'grokipedia')
       .single();
 
     if (error) {
@@ -37,9 +38,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       exists: true,
-      slug: data.slug,
+      slug: data.topic,
       title: data.title,
-      lastModified: data.last_modified,
+      lastModified: data.updated_at,
     });
   } catch (error: any) {
     console.error('Error checking slug:', error.message);
@@ -82,21 +83,22 @@ export async function POST(request: NextRequest) {
     const sanitizedSlugs = slugs.map((slug) => sanitizeInput(slug, 200));
 
     const { data, error } = await supabase
-      .from('grokipedia_slugs')
-      .select('slug, title')
-      .in('slug', sanitizedSlugs);
+      .from('articles')
+      .select('topic, title')
+      .eq('source', 'grokipedia')
+      .in('topic', sanitizedSlugs);
 
     if (error) {
       throw error;
     }
 
     // Create a map of slug -> exists
-    const existsMap = new Map(data.map((item) => [item.slug, true]));
+    const existsMap = new Map(data.map((item) => [item.topic, true]));
 
     const results = sanitizedSlugs.map((slug) => ({
       slug,
       exists: existsMap.has(slug),
-      title: data.find((item) => item.slug === slug)?.title || null,
+      title: data.find((item) => item.topic === slug)?.title || null,
     }));
 
     return NextResponse.json({ results });
