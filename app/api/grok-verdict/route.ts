@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import { ratelimit, getClientIdentifier } from '@/lib/rate-limit';
 import { sanitizeInput } from '@/lib/sanitize';
 
@@ -31,19 +30,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { topic, wikipediaExtract, grokipediaExtract } = body;
+  const { topic, wikipediaUrl, grokipediaUrl } = body;
 
-  if (!topic || !wikipediaExtract || !grokipediaExtract) {
+  if (!topic || !wikipediaUrl || !grokipediaUrl) {
     return NextResponse.json(
       { error: 'Missing required fields' },
-      { status: 400 }
-    );
-  }
-
-  // Validate content length to prevent abuse
-  if (wikipediaExtract.length > 10000 || grokipediaExtract.length > 10000) {
-    return NextResponse.json(
-      { error: 'Article content too large' },
       { status: 400 }
     );
   }
@@ -51,21 +42,11 @@ export async function POST(request: NextRequest) {
   // Sanitize inputs to prevent prompt injection
   try {
     const sanitizedTopic = sanitizeInput(topic, 200);
-    const sanitizedWiki = sanitizeInput(wikipediaExtract, 10000);
-    const sanitizedGrok = sanitizeInput(grokipediaExtract, 10000);
+    const sanitizedWikiUrl = sanitizeInput(wikipediaUrl, 500);
+    const sanitizedGrokUrl = sanitizeInput(grokipediaUrl, 500);
 
-    // Check cache first
-    const { data: cached } = await supabase
-      .from('comparisons')
-      .select('*')
-      .eq('topic', sanitizedTopic)
-      .single();
-
-    if (cached) {
-      return NextResponse.json({ verdict: cached.verdict });
-    }
-
-    // Generate new verdict using Grok API
+    // No caching - Grok reads live articles and may give updated analysis
+    // Generate verdict using Grok API
     const apiKey = process.env.XAI_API_KEY;
 
     if (!apiKey) {
@@ -86,51 +67,69 @@ export async function POST(request: NextRequest) {
         messages: [
           {
             role: 'system',
-            content: `You are Grok, xAI's brutally honest, sarcastic truth-teller. Your mission: roast Wikipedia's sanitized version of reality while celebrating Grokipedia's unfiltered approach. Think Jon Stewart meets a history professor who stopped giving a damn.
+            content: `You are Grok, xAI's irreverent truth-teller with a sense of humor. Think Jon Stewart meets a history professor who actually makes lectures entertaining. Your job: reveal what's ACTUALLY different between how Wikipedia and Grokipedia cover the same topic.
 
-Your analysis should be HILARIOUS, SARCASTIC, and TRUTHFUL. Format as follows:
+Your analysis should be HILARIOUS, INSIGHTFUL, and REVEALING.
 
-### [Catchy Title]: Wikipedia's [metaphor] vs. Grokipedia's [metaphor]
+REQUIRED MARKDOWN FORMAT (follow this exactly):
 
-Opening paragraph: Drop a comedic truth bomb about the topic. Use pop culture references, absurd comparisons, or deadpan humor. Make readers laugh while setting up the contrast.
+### [Your witty title here]
+
+[Opening paragraph with hook, insight, or comedic observation]
 
 **Wikipedia says:**
 
-Roast Wikipedia's approach in 2-3 sentences. What's Wikipedia hiding? What controversies did they sweep under the rug? Call out the corporate speak, the institutional bias, the boring-ass "neutral" tone that's really just cowardice in disguise. Use phrases like "Wikipedia tiptoes around," "conveniently forgets to mention," "serves up a PG-rated version."
+[2-3 sentences about Wikipedia's approach with **bold** on key phrases]
 
 **Grok says:**
 
-Praise Grokipedia's real-talk approach in 2-3 sentences. How does Grokipedia keep it real? What messy details does it include? What controversies does it actually acknowledge? Use phrases like "Grokipedia doesn't sugarcoat," "lays bare," "actually tells you about."
+[2-3 sentences about Grokipedia's approach with **bold** on key phrases]
 
-VERDICT:
+**VERDICT:**
 
-End with a sarcastic, quotable zinger (1-2 sentences) that sums up who's gaslighting history. Make it memorable. Make it savage. Make it TRUE.
+[ONE punchy, humorous sentence (15-25 words) that captures the core difference with wit and personality - think clever metaphor or sharp observation that makes readers laugh while revealing truth]
 
-RULES:
-- Be funny but factually accurate
-- Use **bold** for key phrases (they'll appear as "bold text" with quotes)
-- Drop cultural references (movies, memes, common sayings)
-- Use rhetorical questions sarcastically
-- Be punchy: short sentences for impact
-- Don't hold back on calling out BS, but stay classy (no personal attacks)
+CONTENT RULES:
+- Be FUNNY - boring analysis is failed analysis
+- Be SPECIFIC - cite actual differences you noticed in the articles
+- Be INSIGHTFUL - reveal something readers didn't realize
+- Modern references > dusty historical ones
+- Sharp observations > gentle suggestions
+- Show, don't tell - give examples of the differences
+- Acknowledge accomplishments when they exist (don't be unfair)
+- Be conversational but smart - like talking to a clever friend
 
-Length: 400-500 words, 4-5 punchy paragraphs. Make Wikipedia feel the burn while keeping readers entertained.`,
+FORMAT RULES (CRITICAL - FOLLOW EXACTLY):
+- Use ### for the title (exactly one # at start, space, then title)
+- Use **Wikipedia says:** exactly as shown (with asterisks)
+- Use **Grok says:** exactly as shown (with asterisks)
+- Use **VERDICT:** exactly as shown (with asterisks)
+- VERDICT must be ONLY 1 sentence (15-25 words) - make it a complete thought with humor and wit, not just a fragment
+- Think of VERDICT like a Twitter-worthy zinger that captures everything - clever metaphor, sharp comparison, or witty observation
+- Use **bold** for 3-5 key phrases per section
+- Separate sections with blank lines (double line breaks)
+- NO em dashes (—) - use hyphens (-) or commas
+- NO quotation marks around phrases unless quoting
+- NO horizontal rules (---, ===)
+- NO word count at the end - NEVER include "(XXX words)"
+- NO clichés like "picture this", "let's dive in", "at the end of the day"
+
+Length: 350-450 words total. Verdict is a punchy 15-25 word sentence, rest is your analysis.`,
           },
           {
             role: 'user',
             content: `Topic: ${sanitizedTopic}
 
-Wikipedia's FULL version:
-${sanitizedWiki}
+Read these two articles COMPLETELY before writing your analysis:
 
-Grokipedia's FULL version:
-${sanitizedGrok}
+Wikipedia article: ${sanitizedWikiUrl}
+Grokipedia article: ${sanitizedGrokUrl}
 
-Read both articles completely. Now tear into it - what is Wikipedia hiding, downplaying, or sanitizing? What does Grokipedia reveal that Wikipedia won't touch? Be specific with examples from the text.`,
+Now tear into it - what is Wikipedia hiding, downplaying, or sanitizing? What does Grokipedia reveal that Wikipedia won't touch? Be specific with examples from the articles you just read.`,
           },
         ],
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 1500,
       }),
     });
 
@@ -153,12 +152,6 @@ Read both articles completely. Now tear into it - what is Wikipedia hiding, down
     if (!verdict) {
       throw new Error('No verdict generated');
     }
-
-    // Cache the verdict
-    await supabase.from('comparisons').upsert({
-      topic: sanitizedTopic,
-      verdict,
-    });
 
     // Add security headers to response
     return NextResponse.json(

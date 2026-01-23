@@ -5,7 +5,7 @@ export default function NotFound() {
     <div className="container mx-auto px-4 py-16 text-center">
       <h1 className="mb-4 text-4xl font-bold">Topic Not Found</h1>
       <p className="mb-8 text-lg text-gray-600">
-        We couldn't find this topic on either Wikipedia or Grokipedia.
+        We couldn&apos;t find this topic on either Wikipedia or Grokipedia.
       </p>
       <Link
         href="/"

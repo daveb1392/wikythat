@@ -7,22 +7,9 @@ export interface GrokipediaResult {
 }
 
 function extractSummary(content: string): string {
-  // Strip "Fact-checked by Grok" headers
-  const cleaned = content.replace(/Fact-checked by Grok/gi, '').trim();
-
-  // Split into paragraphs
-  const paragraphs = cleaned.split('\n\n').filter((p) => p.trim().length > 0);
-
-  // Take first 2-3 paragraphs, max 600 chars
-  let summary = '';
-  for (const para of paragraphs) {
-    if (summary.length + para.length > 600) {
-      break;
-    }
-    summary += para + '\n\n';
-  }
-
-  return summary.trim() || cleaned.substring(0, 600);
+  // Content is already clean from the scraper (first span after h1)
+  // Just return it as-is
+  return content.trim();
 }
 
 export async function fetchGrokipediaArticle(

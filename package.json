@@ -7,9 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "sync-slugs": "tsx scripts/sync-grokipedia-slugs.ts"
+    "sync-slugs": "tsx scripts/sync-grokipedia-slugs.ts",
+    "retry-slugs": "tsx scripts/retry-failed-sitemaps.ts"
   },
   "dependencies": {
+    "@lobehub/icons": "^4.0.3",
     "@supabase/supabase-js": "^2.91.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.1",

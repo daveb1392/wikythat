@@ -3,8 +3,8 @@ import type { Metadata } from 'next';
 import ComparisonPanel from '@/components/ComparisonPanel';
 import GrokVerdict from '@/components/GrokVerdict';
 import ShareButtons from '@/components/ShareButtons';
-import VotingWidget from '@/components/VotingWidget';
 import TrustCounter from '@/components/TrustCounter';
+import SearchBar from '@/components/SearchBar';
 import { fetchWikipediaArticle } from '@/lib/wikipedia';
 import { fetchGrokipediaArticle } from '@/lib/grokipedia';
 import { seedTopics } from '@/lib/seed-topics';
@@ -62,6 +62,10 @@ export default async function ComparePage({ params }: PageProps) {
 
   return (
     <main className="container mx-auto px-4 py-8">
+      <div className="mb-8 max-w-2xl mx-auto">
+        <SearchBar />
+      </div>
+
       <h1 className="mb-8 text-center text-4xl font-bold">
         Comparing: {decodedTopic}
       </h1>
@@ -75,13 +79,11 @@ export default async function ComparePage({ params }: PageProps) {
         <>
           <GrokVerdict
             topic={decodedTopic}
-            wikipediaExtract={wikipediaData.extract}
-            grokipediaExtract={grokipediaData.extract}
+            wikipediaUrl={wikipediaData.content_urls?.desktop.page || `https://en.wikipedia.org/wiki/${topic}`}
+            grokipediaUrl={grokipediaData.url || `https://grokipedia.com/page/${topic}`}
           />
 
           <TrustCounter topic={decodedTopic} />
-
-          <VotingWidget topic={decodedTopic} />
         </>
       )}
 
@@ -89,10 +91,10 @@ export default async function ComparePage({ params }: PageProps) {
         <div className="my-8 rounded-lg border-2 border-gray-300 bg-gray-50 p-8 text-center">
           <div className="mb-4 text-5xl">🚧</div>
           <h3 className="mb-2 text-xl font-bold text-gray-900">
-            Can't compare yet
+            Can&apos;t compare yet
           </h3>
           <p className="text-gray-600 mb-4">
-            We need both Wikipedia and Grokipedia articles to generate Grok's
+            We need both Wikipedia and Grokipedia articles to generate Grok&apos;s
             analysis. Try searching for another topic!
           </p>
           <p className="text-sm text-gray-500">

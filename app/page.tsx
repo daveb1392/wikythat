@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import SearchBar from '@/components/SearchBar';
 import { seedTopics } from '@/lib/seed-topics';
+import { LOGOS, LOGO_SIZES } from '@/lib/logos';
 
 export default function HomePage() {
   return (
@@ -28,9 +30,28 @@ export default function HomePage() {
             <Link
               key={topic}
               href={`/compare/${encodeURIComponent(topic)}`}
-              className="rounded-lg border border-gray-300 bg-white p-4 text-center font-semibold transition hover:border-blue-500 hover:shadow-md"
+              className="group rounded-lg border border-gray-300 bg-white p-4 transition hover:border-blue-500 hover:shadow-md"
             >
-              {topic}
+              <div className="mb-3 flex items-center justify-center gap-2">
+                <Image
+                  src={LOGOS.wikipedia.icon}
+                  alt="Wikipedia"
+                  width={LOGO_SIZES.iconSmall.width}
+                  height={LOGO_SIZES.iconSmall.height}
+                  className="object-contain opacity-70 group-hover:opacity-100 transition-opacity"
+                />
+                <span className="text-gray-400">vs</span>
+                <Image
+                  src={LOGOS.grokipedia.icon}
+                  alt="Grokipedia"
+                  width={LOGO_SIZES.iconSmall.width}
+                  height={LOGO_SIZES.iconSmall.height}
+                  className="object-contain opacity-70 group-hover:opacity-100 transition-opacity"
+                />
+              </div>
+              <div className="text-center font-semibold text-gray-900">
+                {topic}
+              </div>
             </Link>
           ))}
         </div>

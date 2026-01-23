@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import type { WikipediaResult } from '@/lib/wikipedia';
 import type { GrokipediaResult } from '@/lib/grokipedia';
+import { LOGOS, LOGO_SIZES } from '@/lib/logos';
 
 interface ComparisonPanelProps {
   source: 'wikipedia' | 'grokipedia';
@@ -40,7 +41,7 @@ export default function ComparisonPanel({
                   Not covered yet
                 </p>
                 <p className="text-sm text-yellow-800">
-                  Grokipedia hasn't written about this topic yet. Check back
+                  Grokipedia hasn&apos;t written about this topic yet. Check back
                   later, or explore other comparisons!
                 </p>
               </div>
@@ -62,10 +63,19 @@ export default function ComparisonPanel({
     : grokData.url;
 
   return (
-    <div className={`rounded-lg border-2 ${borderColor} ${bgColor} p-6`}>
-      <h2 className={`mb-4 text-2xl font-bold ${titleColor}`}>
-        {isWikipedia ? 'Wikipedia' : 'Grokipedia'}
-      </h2>
+    <div className={`flex flex-col rounded-lg border-2 ${borderColor} ${bgColor} p-6`}>
+      <div className="mb-4 flex items-center gap-3 h-10">
+        <Image
+          src={isWikipedia ? LOGOS.wikipedia.icon : LOGOS.grokipedia.icon}
+          alt={isWikipedia ? 'Wikipedia' : 'Grokipedia'}
+          width={LOGO_SIZES.icon.width}
+          height={LOGO_SIZES.icon.height}
+          className="object-contain flex-shrink-0"
+        />
+        <h2 className={`text-2xl font-bold ${titleColor}`}>
+          {isWikipedia ? 'Wikipedia' : 'Grokipedia'}
+        </h2>
+      </div>
 
       {(sharedThumbnail || (isWikipedia && wikiData.thumbnail)) && (
         <div className="mb-4 flex justify-center">
@@ -81,14 +91,14 @@ export default function ComparisonPanel({
 
       <h3 className="mb-3 text-xl font-semibold">{data.title}</h3>
 
-      <p className="mb-4 whitespace-pre-line text-gray-700">{data.extract}</p>
+      <p className="mb-4 flex-1 whitespace-pre-line text-gray-700">{data.extract}</p>
 
       {url && (
         <a
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className={`inline-block font-semibold ${linkColor} hover:underline`}
+          className={`inline-block font-semibold ${linkColor} hover:underline mt-auto`}
         >
           Read more →
         </a>

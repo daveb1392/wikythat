@@ -55,28 +55,23 @@ export async function GET(request: NextRequest) {
     const html = await response.text();
     const $ = cheerio.load(html);
 
-    // Extract title
-    const title = $('h1').first().text().trim() || slug;
+    // Find the article element
+    const article = $('article').first();
 
-    // Extract main content from article.prose or similar selectors
-    let contentText = '';
-    const article = $('article.prose, article, .prose, main');
-
-    if (article.length > 0) {
-      // Remove unwanted sections
-      article.find('#references, .references, #notes, nav, .toc, #toc, .table-of-contents, .navigation, .sidebar, header, footer').remove();
-
-      // Get only paragraph text with proper spacing
-      const paragraphs: string[] = [];
-      article.find('p').each((_, elem) => {
-        const text = $(elem).text().trim();
-        if (text.length > 20) { // Filter out very short paragraphs (likely navigation)
-          paragraphs.push(text);
-        }
-      });
-
-      contentText = paragraphs.join('\n\n');
+    if (article.length === 0) {
+      return NextResponse.json(
+        { error: 'Article content not found' },
+        { status: 404 }
+      );
     }
+
+    // Extract title from h1
+    const h1 = article.find('h1').first();
+    const title = h1.text().trim() || slug.replace(/_/g, ' ');
+
+    // Extract first span after h1 - this is the summary
+    const firstSpan = h1.next('span').first();
+    const contentText = firstSpan.text().trim();
 
     // Extract references
     const references: { number: number; url: string }[] = [];

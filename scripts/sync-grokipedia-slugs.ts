@@ -102,12 +102,16 @@ async function fetchSitemap(sitemapUrl: string): Promise<SitemapEntry[]> {
   return entries;
 }
 
-async function batchInsertSlugs(slugs: SitemapEntry[]): Promise<void> {
-  // Supabase has a limit on batch inserts, so we'll do 1000 at a time
-  const BATCH_SIZE = 1000;
+async function batchInsertSlugs(
+  slugs: SitemapEntry[],
+  batchSize: number = 1000,
+  delayMs: number = 100
+): Promise<{ success: boolean; error?: any; inserted: number; skipped: number }> {
+  let totalInserted = 0;
+  let totalSkipped = 0;
 
-  for (let i = 0; i < slugs.length; i += BATCH_SIZE) {
-    const batch = slugs.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < slugs.length; i += batchSize) {
+    const batch = slugs.slice(i, i + batchSize);
 
     // Deduplicate within this batch (keep last occurrence)
     const uniqueBatch = Array.from(
@@ -116,23 +120,77 @@ async function batchInsertSlugs(slugs: SitemapEntry[]): Promise<void> {
       ).values()
     );
 
-    const { error } = await supabase
-      .from('grokipedia_slugs')
-      .upsert(
-        uniqueBatch.map((entry) => ({
-          slug: entry.slug,
-          title: entry.title,
-          last_modified: entry.lastModified,
-          updated_at: new Date().toISOString(),
-        })),
-        { onConflict: 'slug' }
+    try {
+      // Check which slugs already exist
+      const existingSlugs = uniqueBatch.map((entry) => entry.slug);
+      const { data: existing } = await supabase
+        .from('grokipedia_slugs')
+        .select('slug, last_modified')
+        .in('slug', existingSlugs);
+
+      const existingMap = new Map(
+        (existing || []).map((item: any) => [item.slug, item.last_modified])
       );
 
-    if (error) {
-      console.error(`❌ Error inserting batch ${i / BATCH_SIZE + 1}:`, error);
-      throw error;
+      // Filter to only new or modified slugs
+      const toInsert = uniqueBatch.filter((entry) => {
+        const existingLastModified = existingMap.get(entry.slug);
+
+        // Insert if new
+        if (!existingLastModified) {
+          return true;
+        }
+
+        // Insert if modified date changed
+        if (entry.lastModified && existingLastModified !== entry.lastModified) {
+          return true;
+        }
+
+        // Skip if unchanged
+        return false;
+      });
+
+      const skipped = uniqueBatch.length - toInsert.length;
+      totalSkipped += skipped;
+
+      if (toInsert.length === 0) {
+        // All slugs already exist and are up-to-date, skip this batch
+        continue;
+      }
+
+      const { error } = await supabase
+        .from('grokipedia_slugs')
+        .upsert(
+          toInsert.map((entry) => ({
+            slug: entry.slug,
+            title: entry.title,
+            last_modified: entry.lastModified,
+            updated_at: new Date().toISOString(),
+          })),
+          { onConflict: 'slug' }
+        );
+
+      if (error) {
+        console.error(`   ⚠️  Error inserting batch ${Math.floor(i / batchSize) + 1}:`, error.message);
+        // If timeout error, try with smaller batches
+        if (error.code === '57014' && batchSize > 100) {
+          console.log(`   🔄 Retrying batch with smaller size (${Math.floor(batchSize / 2)})...`);
+          return await batchInsertSlugs(batch, Math.floor(batchSize / 2), delayMs * 2);
+        }
+        return { success: false, error, inserted: totalInserted, skipped: totalSkipped };
+      }
+
+      totalInserted += toInsert.length;
+
+      // Add delay between batches to reduce database load
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    } catch (err) {
+      console.error(`   ⚠️  Batch insert exception:`, err);
+      return { success: false, error: err, inserted: totalInserted, skipped: totalSkipped };
     }
   }
+
+  return { success: true, inserted: totalInserted, skipped: totalSkipped };
 }
 
 async function updateSyncStatus(
@@ -175,8 +233,10 @@ async function main() {
     // Fetch all sitemap URLs
     const sitemapUrls = await fetchSitemapIndex();
 
-    let totalSlugs = 0;
+    let totalInserted = 0;
+    let totalSkipped = 0;
     let processedSitemaps = 0;
+    const failedSitemaps: { url: string; entries: SitemapEntry[] }[] = [];
 
     // Process each sitemap
     for (const sitemapUrl of sitemapUrls) {
@@ -188,10 +248,17 @@ async function main() {
         const entries = await fetchSitemap(sitemapUrl);
         console.log(`   Found ${entries.length} entries`);
 
-        await batchInsertSlugs(entries);
-        totalSlugs += entries.length;
-        console.log(`   ✅ Inserted/updated ${entries.length} slugs`);
-        console.log(`   📊 Total progress: ${totalSlugs.toLocaleString()} slugs`);
+        const result = await batchInsertSlugs(entries);
+
+        if (result.success) {
+          totalInserted += result.inserted;
+          totalSkipped += result.skipped;
+          console.log(`   ✅ Inserted ${result.inserted}, skipped ${result.skipped} (already up-to-date)`);
+          console.log(`   📊 Total: ${totalInserted.toLocaleString()} inserted, ${totalSkipped.toLocaleString()} skipped`);
+        } else {
+          console.log(`   ⚠️  Failed to insert, will retry later`);
+          failedSitemaps.push({ url: sitemapUrl, entries });
+        }
       } catch (error) {
         console.error(`   ❌ Error processing sitemap:`, error);
         // Continue with next sitemap instead of failing completely
@@ -201,10 +268,41 @@ async function main() {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    await updateSyncStatus('completed', totalSlugs);
+    // Retry failed sitemaps with slower rate
+    if (failedSitemaps.length > 0) {
+      console.log(`\n🔄 Retrying ${failedSitemaps.length} failed sitemaps with slower rate...\n`);
 
-    console.log('\n✅ Sync completed successfully!');
-    console.log(`📊 Total slugs synced: ${totalSlugs.toLocaleString()}`);
+      for (let i = 0; i < failedSitemaps.length; i++) {
+        const { url, entries } = failedSitemaps[i];
+        console.log(`\n📄 Retry ${i + 1}/${failedSitemaps.length}: ${url}`);
+        console.log(`   Found ${entries.length} entries (cached)`);
+
+        try {
+          // Use smaller batch size (500) and longer delay (300ms) for retries
+          const result = await batchInsertSlugs(entries, 500, 300);
+
+          if (result.success) {
+            totalInserted += result.inserted;
+            totalSkipped += result.skipped;
+            console.log(`   ✅ Retry successful! Inserted ${result.inserted}, skipped ${result.skipped}`);
+          } else {
+            console.log(`   ❌ Retry failed, skipping`);
+          }
+        } catch (error) {
+          console.error(`   ❌ Error during retry:`, error);
+        }
+      }
+    }
+
+    await updateSyncStatus('completed', totalInserted);
+
+    console.log('\n✅ Sync completed!');
+    console.log(`📊 Total inserted/updated: ${totalInserted.toLocaleString()}`);
+    console.log(`📊 Total skipped (unchanged): ${totalSkipped.toLocaleString()}`);
+    console.log(`📊 Total processed: ${(totalInserted + totalSkipped).toLocaleString()}`);
+    if (failedSitemaps.length > 0) {
+      console.log(`⚠️  Some sitemaps may have failed. Check logs above.`);
+    }
   } catch (error) {
     console.error('\n❌ Sync failed:', error);
     await updateSyncStatus('failed', undefined, String(error));

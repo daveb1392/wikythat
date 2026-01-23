@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import Analytics from '@/components/Analytics';
+import { LOGOS, LOGO_SIZES } from '@/lib/logos';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -10,6 +12,9 @@ export const metadata: Metadata = {
   title: 'Wikithat - Compare Wikipedia vs Grokipedia',
   description:
     'Compare any topic side-by-side on Wikipedia and Grokipedia. See how traditional encyclopedia stacks up against AI-powered knowledge.',
+  icons: {
+    icon: LOGOS.wikithat.favicon,
+  },
   openGraph: {
     title: 'Wikithat - Compare Wikipedia vs Grokipedia',
     description:
@@ -30,24 +35,36 @@ export default function RootLayout({
 
         <header className="border-b bg-white shadow-sm">
           <div className="container mx-auto px-4 py-4">
-            <Link href="/" className="text-2xl font-bold text-gray-900">
-              <span className="text-blue-600">Wiki</span>
-              <span className="text-purple-600">that</span>
+            <Link href="/" className="flex items-center gap-2">
+              <Image
+                src={LOGOS.wikithat.main}
+                alt="Wikithat"
+                width={LOGO_SIZES.header.width}
+                height={LOGO_SIZES.header.height}
+                className="object-contain"
+                priority
+              />
             </Link>
           </div>
         </header>
 
         <div className="flex-1">{children}</div>
 
-        <footer className="border-t bg-white py-6">
-          <div className="container mx-auto px-4 text-center text-gray-600">
-            <p>
-              Compare Wikipedia and Grokipedia articles side-by-side.
-              <br />
-              <span className="text-sm">
-                Built with Next.js • Data from Wikipedia & Grokipedia APIs
-              </span>
-            </p>
+        <footer className="border-t bg-gradient-to-r from-blue-50 to-purple-50 py-8">
+          <div className="container mx-auto px-4">
+            <div className="text-center">
+              <p className="text-lg font-semibold text-gray-800 mb-4">
+                Compare Wikipedia and Grokipedia articles side-by-side
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-600 mb-4">
+                <span>© {new Date().getFullYear()} Wikithat</span>
+                <span className="hidden sm:inline">•</span>
+                <span>Data from Wikipedia & Grokipedia</span>
+              </div>
+              <p className="text-xs text-gray-500">
+                Not affiliated with Wikipedia or Grokipedia
+              </p>
+            </div>
           </div>
         </footer>
       </body>

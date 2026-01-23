@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
+import { LOGOS, LOGO_SIZES } from '@/lib/logos';
 
 interface TrustCounterProps {
   topic: string;
@@ -12,20 +14,7 @@ export default function TrustCounter({ topic }: TrustCounterProps) {
   const [voting, setVoting] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
 
-  useEffect(() => {
-    // Check if user has already voted for this topic
-    const votedTopics = JSON.parse(
-      localStorage.getItem('voted_topics') || '{}'
-    );
-    if (votedTopics[topic]) {
-      setHasVoted(true);
-    }
-
-    // Fetch current vote counts
-    fetchVotes();
-  }, [topic]);
-
-  const fetchVotes = async () => {
+  const fetchVotes = useCallback(async () => {
     try {
       const response = await fetch(
         `/api/trust-vote?topic=${encodeURIComponent(topic)}`
@@ -39,7 +28,20 @@ export default function TrustCounter({ topic }: TrustCounterProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [topic]);
+
+  useEffect(() => {
+    // Check if user has already voted for this topic
+    const votedTopics = JSON.parse(
+      localStorage.getItem('voted_topics') || '{}'
+    );
+    if (votedTopics[topic]) {
+      setHasVoted(true);
+    }
+
+    // Fetch current vote counts
+    fetchVotes();
+  }, [topic, fetchVotes]);
 
   const handleVote = async (source: 'wikipedia' | 'grokipedia') => {
     if (hasVoted || voting) return;
@@ -116,7 +118,15 @@ export default function TrustCounter({ topic }: TrustCounterProps) {
           }`}
         >
           <div className="flex flex-col items-center gap-3">
-            <span className="text-4xl">📚</span>
+            <div className="flex h-10 w-10 items-center justify-center">
+              <Image
+                src={LOGOS.wikipedia.icon}
+                alt="Wikipedia"
+                width={LOGO_SIZES.icon.width}
+                height={LOGO_SIZES.icon.height}
+                className="object-contain"
+              />
+            </div>
             <span className="text-xl font-bold text-blue-900">Wikipedia</span>
             <div className="w-full">
               <div className="mb-2 flex items-center justify-between text-sm">
@@ -148,7 +158,15 @@ export default function TrustCounter({ topic }: TrustCounterProps) {
           }`}
         >
           <div className="flex flex-col items-center gap-3">
-            <span className="text-4xl">🤖</span>
+            <div className="flex h-10 w-10 items-center justify-center">
+              <Image
+                src={LOGOS.grokipedia.icon}
+                alt="Grokipedia"
+                width={LOGO_SIZES.icon.width}
+                height={LOGO_SIZES.icon.height}
+                className="object-contain"
+              />
+            </div>
             <span className="text-xl font-bold text-purple-900">
               Grokipedia
             </span>
