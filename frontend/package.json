@@ -14,8 +14,6 @@
     "test": "vitest",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
-    "sync-slugs": "tsx ../scripts/sync-grokipedia-slugs.ts",
-    "retry-slugs": "tsx ../scripts/retry-failed-sitemaps.ts",
     "fetch-metrics": "tsx ../scripts/fetch-domain-metrics.ts",
     "generate-valuation": "tsx ../scripts/generate-domain-valuation.ts",
     "analyze-domain": "npm run fetch-metrics && npm run generate-valuation"

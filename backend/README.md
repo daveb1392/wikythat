@@ -20,16 +20,39 @@ uvicorn main:app --host 0.0.0.0 --port 8000
 ## API Endpoints
 
 - `GET /` - API documentation (HTML)
-- `GET /page/{slug}` - Fetch Grokipedia page content
+- `GET /page/{slug}` - Fetch Grokipedia page content (requires `X-API-Key` header)
   - Query params: `extract_refs` (bool), `truncate` (int), `citations` (bool)
+- `GET /sitemap-index` - Fetch Grokipedia sitemap index (requires `X-API-Key` header)
+- `GET /sitemap?url=<url>` - Fetch individual sitemap (requires `X-API-Key` header)
 - `GET /health?key=<secret>` - Health check with cache stats
 - `GET /docs` - Interactive API docs (Swagger UI)
 - `GET /redoc` - API documentation (ReDoc)
+
+## Slug Sync Script
+
+Sync all 6M+ Grokipedia article slugs to Supabase:
+
+```bash
+# Run slug sync
+python sync_slugs.py
+
+# The script will:
+# - Fetch all sitemap URLs from Grokipedia
+# - Parse article slugs from each sitemap
+# - Store slugs in Supabase grokipedia_slugs table
+# - Skip existing/unchanged slugs (smart upsert)
+# - Retry failed sitemaps automatically
+```
+
+**Note**: You need Supabase credentials in your `.env` file for this to work.
 
 ## Environment Variables
 
 - `ANALYTICS_KEY` - API analytics key (optional)
 - `HEALTH_SECRET` - Secret key for health endpoint
+- `API_SECRET_KEY` - API key for authenticating requests (required)
+- `NEXT_PUBLIC_SUPABASE_URL` - Supabase project URL (for sync script)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` - Supabase anon key (for sync script)
 - `VERCEL` - Set to any value when deploying to Vercel
 
 ## Features

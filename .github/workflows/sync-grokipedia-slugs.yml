@@ -16,22 +16,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '18'
-          cache: 'npm'
+          python-version: '3.11'
+          cache: 'pip'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install Python dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
 
       - name: Run slug sync
-        run: npm run sync-slugs
+        run: python backend/sync_slugs.py
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          GROKIPEDIA_API_URL: ${{ secrets.GROKIPEDIA_API_URL }}
-          GROKIPEDIA_API_KEY: ${{ secrets.GROKIPEDIA_API_KEY }}
 
       - name: Notify on success
         if: success()
