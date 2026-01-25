@@ -118,14 +118,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Search by normalized search_key
-    const searchKey = query.toLowerCase().replace(/[\s_]/g, '');
+    // Search by title (has index via slug primary key, much faster)
+    // Use ILIKE for case-insensitive partial match
+    const searchPattern = `%${query}%`;
 
     const { data, error } = await supabase
       .from('grokipedia_slugs')
       .select('slug, title')
-      .ilike('search_key', `%${searchKey}%`)
-      .order('slug')
+      .or(`title.ilike.${searchPattern},slug.ilike.${searchPattern}`)
+      .order('title')
       .limit(20);
 
     if (error) {
