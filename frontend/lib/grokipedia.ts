@@ -36,21 +36,37 @@ export async function fetchGrokipediaArticle(
 
   console.log(`[Grokipedia] ❌ CACHE MISS for "${topic}" - calling Python backend`);
 
-  // Look up correct slug from grokipedia_slugs table (case-insensitive)
-  const tentativeSlug = topic.replace(/\s+/g, '_');
-
-  const { data: slugData } = await supabase
-    .from('grokipedia_slugs')
-    .select('slug')
-    .ilike('slug', tentativeSlug)
+  // Step 1: Check user-curated mappings first (highest priority)
+  const { data: mappingData } = await supabase
+    .from('topic_mappings')
+    .select('grokipedia_slug')
+    .eq('wikipedia_topic', topic)
     .single();
 
-  const slug = slugData?.slug || tentativeSlug;
+  let slug: string;
 
-  if (slugData?.slug) {
-    console.log(`[Grokipedia] 🔍 Found exact slug in database: "${slug}"`);
+  if (mappingData?.grokipedia_slug) {
+    slug = mappingData.grokipedia_slug;
+    console.log(`[Grokipedia] ✅ Found user-curated mapping: "${topic}" → "${slug}"`);
   } else {
-    console.log(`[Grokipedia] ⚠️  Slug not found in database, using fallback: "${slug}"`);
+    // Step 2: Try normalized search_key lookup (automatic matching)
+    const searchKey = topic.toLowerCase().replace(/[\s_]/g, '');
+
+    const { data: slugData } = await supabase
+      .from('grokipedia_slugs')
+      .select('slug')
+      .eq('search_key', searchKey)
+      .order('slug')  // Alphabetical order for consistency
+      .limit(1);
+
+    if (slugData && slugData.length > 0) {
+      slug = slugData[0].slug;
+      console.log(`[Grokipedia] 🔍 Found slug via search_key "${searchKey}": "${slug}"`);
+    } else {
+      // Step 3: Fallback to simple conversion
+      slug = topic.replace(/\s+/g, '_');
+      console.log(`[Grokipedia] ⚠️  No match found, using fallback: "${slug}"`);
+    }
   }
 
   try {

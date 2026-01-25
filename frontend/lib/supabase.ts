@@ -23,3 +23,12 @@ export interface CachedComparison {
   verdict: string;
   created_at?: string;
 }
+
+export interface TopicMapping {
+  id?: string;
+  wikipedia_topic: string;
+  grokipedia_slug: string;
+  vote_count: number;
+  created_at?: string;
+  updated_at?: string;
+}

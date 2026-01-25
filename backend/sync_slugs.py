@@ -127,9 +127,9 @@ def batch_insert_slugs(
     batch_size: int = 100,
     delay_ms: int = 50
 ) -> Dict[str, any]:
-    """Insert slugs into Supabase in batches with smart deduplication."""
-    total_inserted = 0
-    total_skipped = 0
+    """Upsert slugs into Supabase in batches (database handles duplicates)."""
+    total_upserted = 0
+    total_failed = 0
 
     for i in range(0, len(slugs), batch_size):
         batch = slugs[i:i + batch_size]
@@ -141,38 +141,9 @@ def batch_insert_slugs(
         batch = list(unique_batch.values())
 
         try:
-            # Check which slugs already exist
-            existing_slugs = [entry.slug for entry in batch]
-
-            try:
-                result = supabase.table('grokipedia_slugs').select('slug, last_modified').in_('slug', existing_slugs).execute()
-                existing_map = {item['slug']: item.get('last_modified') for item in result.data}
-            except Exception as check_err:
-                # If checking fails, assume all are new (worst case: duplicates get rejected)
-                print(f"   ⚠️  Could not check existing slugs: {check_err}")
-                existing_map = {}
-
-            # Filter to only new or modified slugs
-            to_insert = []
-            for entry in batch:
-                existing_last_modified = existing_map.get(entry.slug)
-
-                # Insert if new
-                if existing_last_modified is None:
-                    to_insert.append(entry)
-                    continue
-
-                # Insert if modified date changed
-                if entry.last_modified and existing_last_modified != entry.last_modified:
-                    to_insert.append(entry)
-                    continue
-
-            skipped = len(batch) - len(to_insert)
-            total_skipped += skipped
-
-            if len(to_insert) == 0:
-                # All slugs already exist and are up-to-date
-                continue
+            # Skip checking existing - just upsert everything
+            # Database ON CONFLICT handles duplicates (no duplicates created)
+            to_insert = batch
 
             # Upsert new/modified slugs - sanitize and validate each entry
             data = []
@@ -184,12 +155,16 @@ def batch_insert_slugs(
 
                     # Skip if slug becomes empty after sanitization
                     if not slug_clean:
-                        total_skipped += 1
+                        total_failed += 1
                         continue
+
+                    # Generate normalized search_key for fast lookups
+                    search_key = title_clean.lower().replace(' ', '').replace('_', '') if title_clean else slug_clean.lower().replace('_', '')
 
                     item = {
                         'slug': slug_clean,
                         'title': title_clean,
+                        'search_key': search_key,
                         'last_modified': entry.last_modified,
                         'updated_at': datetime.utcnow().isoformat()
                     }
@@ -201,7 +176,7 @@ def batch_insert_slugs(
                 except Exception as e:
                     # Skip entries that can't be serialized
                     print(f"   ⚠️  Skipping invalid entry: {repr(entry.slug[:100])}... ({e})")
-                    total_skipped += 1
+                    total_failed += 1
                     continue
 
             if not data:
@@ -221,12 +196,12 @@ def batch_insert_slugs(
                         success_count += 1
                     except Exception as single_err:
                         print(f"      ✗ Failed: {repr(item['slug'][:80])}")
-                        total_skipped += 1
+                        total_failed += 1
 
-                total_inserted += success_count
+                total_upserted += success_count
                 continue
 
-            total_inserted += len(data)
+            total_upserted += len(data)
 
             # Add delay between batches
             if delay_ms > 0:
@@ -234,9 +209,9 @@ def batch_insert_slugs(
 
         except Exception as err:
             print(f"   ⚠️  Batch insert error: {err}")
-            return {'success': False, 'error': str(err), 'inserted': total_inserted, 'skipped': total_skipped}
+            return {'success': False, 'error': str(err), 'upserted': total_upserted, 'failed': total_failed}
 
-    return {'success': True, 'inserted': total_inserted, 'skipped': total_skipped}
+    return {'success': True, 'upserted': total_upserted, 'failed': total_failed}
 
 def main():
     """Main sync function."""
@@ -248,8 +223,8 @@ def main():
         # Fetch all sitemap URLs
         sitemap_urls = fetch_sitemap_index()
 
-        total_inserted = 0
-        total_skipped = 0
+        total_upserted = 0
+        total_failed = 0
         processed_sitemaps = 0
         failed_sitemaps = []
 
@@ -266,12 +241,12 @@ def main():
                 result = batch_insert_slugs(entries)
 
                 if result['success']:
-                    total_inserted += result['inserted']
-                    total_skipped += result['skipped']
-                    print(f"   ✅ Inserted {result['inserted']}, skipped {result['skipped']} (already up-to-date)")
-                    print(f"   📊 Total: {total_inserted:,} inserted, {total_skipped:,} skipped")
+                    total_upserted += result['upserted']
+                    total_failed += result['failed']
+                    print(f"   ✅ Upserted {result['upserted']}, failed {result['failed']}")
+                    print(f"   📊 Total: {total_upserted:,} upserted, {total_failed:,} failed")
                 else:
-                    print(f"   ⚠️  Failed to insert, will retry later")
+                    print(f"   ⚠️  Failed to upsert, will retry later")
                     failed_sitemaps.append({'url': sitemap_url, 'entries': entries})
 
             except Exception as error:
@@ -296,9 +271,9 @@ def main():
                     result = batch_insert_slugs(entries, batch_size=50, delay_ms=200)
 
                     if result['success']:
-                        total_inserted += result['inserted']
-                        total_skipped += result['skipped']
-                        print(f"   ✅ Retry successful! Inserted {result['inserted']}, skipped {result['skipped']}")
+                        total_upserted += result['upserted']
+                        total_failed += result['failed']
+                        print(f"   ✅ Retry successful! Upserted {result['upserted']}, failed {result['failed']}")
                     else:
                         print(f"   ❌ Retry failed, skipping")
 
@@ -308,13 +283,16 @@ def main():
         elapsed = time.time() - start_time
 
         print('\n✅ Sync completed!')
-        print(f'📊 Total inserted/updated: {total_inserted:,}')
-        print(f'📊 Total skipped (unchanged): {total_skipped:,}')
-        print(f'📊 Total processed: {total_inserted + total_skipped:,}')
+        print(f'📊 Total upserted: {total_upserted:,}')
+        print(f'📊 Total failed: {total_failed:,}')
+        print(f'📊 Total processed: {total_upserted + total_failed:,}')
         print(f'⏱️  Time elapsed: {elapsed / 60:.1f} minutes')
 
         if failed_sitemaps:
             print(f'⚠️  Some sitemaps may have failed. Check logs above.')
+
+        if total_failed > 0:
+            print(f'\n⚠️  Note: {total_failed:,} entries failed (likely invalid characters or duplicates)')
 
     except Exception as error:
         print(f'\n❌ Sync failed: {error}')

@@ -5,6 +5,7 @@ import GrokVerdict from '@/components/GrokVerdict';
 import ShareButtons from '@/components/ShareButtons';
 import TrustCounter from '@/components/TrustCounter';
 import SearchBar from '@/components/SearchBar';
+import TopicMappingWrapper from '@/components/TopicMappingWrapper';
 import { fetchWikipediaArticle } from '@/lib/wikipedia';
 import { fetchGrokipediaArticle } from '@/lib/grokipedia';
 import { seedTopics } from '@/lib/seed-topics';
@@ -76,6 +77,19 @@ export default async function ComparePage({ params }: PageProps) {
         <ComparisonPanel source="grokipedia" data={grokipediaData} sharedThumbnail={sharedThumbnail} />
       </div>
 
+      {/* Topic mapping banner - shown when Grokipedia article is found */}
+      {grokipediaData && (
+        <div className="mb-8 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-4 text-center shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-700">
+            <span>Wrong Grokipedia match?</span>
+            <TopicMappingWrapper
+              wikipediaTopic={decodedTopic}
+              currentSlug={grokipediaData.url?.split('/').pop()}
+            />
+          </div>
+        </div>
+      )}
+
       {wikipediaData && grokipediaData && (
         <>
           <GrokVerdict
@@ -92,11 +106,15 @@ export default async function ComparePage({ params }: PageProps) {
         <div className="my-8 rounded-lg border-2 border-gray-300 bg-gray-50 p-8 text-center">
           <div className="mb-4 text-5xl">🚧</div>
           <h3 className="mb-2 text-xl font-bold text-gray-900">
-            Can&apos;t compare yet
+            Can&apos;t find Grokipedia match
           </h3>
           <p className="text-gray-600 mb-4">
-            We need both Wikipedia and Grokipedia articles to generate Grok&apos;s
-            analysis. Try searching for another topic!
+            We couldn&apos;t automatically find the matching Grokipedia article.
+            Help us by selecting the correct topic:
+          </p>
+          <TopicMappingWrapper wikipediaTopic={decodedTopic} />
+          <p className="text-gray-500 text-sm mt-4">
+            Or try searching for another topic!
           </p>
           <p className="text-sm text-gray-500">
             Popular comparisons: Elon Musk, Bitcoin, COVID-19, AI
