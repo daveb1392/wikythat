@@ -16,6 +16,11 @@ const WALLET_ADDRESSES: WalletAddress[] = [
     icon: '₿',
   },
   {
+    name: 'Dogecoin (DOGE)',
+    address: 'DPJSd1EkFxbLrFj6TWcmbeCCmn7hY61rsL',
+    icon: 'Ð',
+  },
+  {
     name: 'Ethereum (ETH)',
     address: '0x089bE998D8387cc87cdBC8f5154F07587547Ee73',
     icon: 'Ξ',
@@ -90,6 +95,7 @@ export default function DonationButton() {
                   <div className="flex items-center gap-3 mb-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md ${
                       wallet.name.includes('Bitcoin') ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
+                      wallet.name.includes('Dogecoin') ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
                       wallet.name.includes('Ethereum') ? 'bg-gradient-to-br from-blue-500 to-purple-600' :
                       'bg-gradient-to-br from-purple-500 via-cyan-500 to-green-400'
                     }`}>
