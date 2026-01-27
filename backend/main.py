@@ -122,9 +122,7 @@ def normalize_slug(input_str: str) -> str:
     input_str = urllib.parse.unquote(input_str)
     # Replace space with underscore
     normalized = input_str.replace(' ', '_')
-    # Check if first letter is capitalized
-    if not normalized[0].isupper():
-        normalized = normalized.capitalize()
+    # Return exact slug - frontend handles mapping logic
     return normalized
 
 def find_content_div(soup: BeautifulSoup) -> BeautifulSoup:
