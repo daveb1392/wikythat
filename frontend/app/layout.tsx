@@ -9,19 +9,52 @@ import './globals.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://wikithat.com' : 'http://localhost:3000')
   ),
-  title: 'Wikithat - Compare Wikipedia vs Grokipedia',
+  title: {
+    default: 'Wikithat - Compare Wikipedia vs Grokipedia',
+    template: '%s | Wikithat',
+  },
   description:
-    'Compare any topic side-by-side on Wikipedia and Grokipedia. See how traditional encyclopedia stacks up against AI-powered knowledge.',
+    'Compare any topic side-by-side on Wikipedia and Grokipedia. See how traditional encyclopedia stacks up against AI-powered knowledge. Get AI-generated verdicts powered by Grok.',
+  keywords: ['Wikipedia', 'Grokipedia', 'comparison', 'encyclopedia', 'AI', 'fact check', 'knowledge', 'Grok'],
+  authors: [{ name: 'Wikithat' }],
+  creator: 'Wikithat',
+  publisher: 'Wikithat',
   icons: {
     icon: LOGOS.wikithat.favicon,
   },
+  manifest: '/manifest.json',
   openGraph: {
     title: 'Wikithat - Compare Wikipedia vs Grokipedia',
     description:
-      'Compare any topic side-by-side on Wikipedia and Grokipedia.',
+      'Compare any topic side-by-side on Wikipedia and Grokipedia. Traditional encyclopedia vs AI-powered knowledge.',
     type: 'website',
+    siteName: 'Wikithat',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Wikithat - Compare Wikipedia vs Grokipedia',
+    description: 'Compare any topic side-by-side. Traditional encyclopedia vs AI-powered knowledge.',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    // Add your verification codes here when available
+    // google: 'your-google-verification-code',
+    // yandex: 'your-yandex-verification-code',
+    // bing: 'your-bing-verification-code',
   },
 };
 

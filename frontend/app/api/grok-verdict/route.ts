@@ -134,7 +134,7 @@ REQUIRED MARKDOWN FORMAT (follow this exactly):
 
 [2-3 sentences about Wikipedia's approach with **bold** on key phrases]
 
-**Grok says:**
+**Grokipedia says:**
 
 [2-3 sentences about Grokipedia's approach with **bold** on key phrases]
 
@@ -155,7 +155,7 @@ CONTENT RULES:
 FORMAT RULES (CRITICAL - FOLLOW EXACTLY):
 - Use ### for the title (exactly one # at start, space, then title)
 - Use **Wikipedia says:** exactly as shown (with asterisks)
-- Use **Grok says:** exactly as shown (with asterisks)
+- Use **Grokipedia says:** exactly as shown (with asterisks)
 - Use **VERDICT:** exactly as shown (with asterisks)
 - VERDICT must be ONLY 1 sentence (15-25 words) - make it a complete thought with humor and wit, not just a fragment
 - Think of VERDICT like a Twitter-worthy zinger that captures everything - clever metaphor, sharp comparison, or witty observation

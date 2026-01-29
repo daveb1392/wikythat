@@ -2,7 +2,9 @@ import type { MetadataRoute } from 'next';
 import { seedTopics } from '@/lib/seed-topics';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://wikithat.com' : 'http://localhost:3000');
 
   const routes = [
     {

@@ -1,12 +1,100 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import type { Metadata } from 'next';
 import SearchBar from '@/components/SearchBar';
 import { seedTopics } from '@/lib/seed-topics';
 import { LOGOS, LOGO_SIZES } from '@/lib/logos';
 
+export const metadata: Metadata = {
+  title: 'Wikithat - Compare Wikipedia vs Grokipedia Side-by-Side',
+  description: 'Compare any topic side-by-side on Wikipedia and Grokipedia. See how traditional encyclopedia stacks up against AI-powered knowledge. Get AI-generated verdicts powered by Grok.',
+  keywords: ['Wikipedia', 'Grokipedia', 'comparison', 'encyclopedia', 'AI knowledge', 'fact check', 'Grok AI', 'knowledge comparison'],
+  openGraph: {
+    title: 'Wikithat - Compare Wikipedia vs Grokipedia',
+    description: 'Compare any topic side-by-side. Traditional encyclopedia vs AI-powered knowledge.',
+    type: 'website',
+    siteName: 'Wikithat',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Wikithat - Compare Wikipedia and Grokipedia',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Wikithat - Compare Wikipedia vs Grokipedia',
+    description: 'Compare any topic side-by-side. Traditional encyclopedia vs AI-powered knowledge.',
+    images: ['/og-image.png'],
+  },
+};
+
 export default function HomePage() {
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://wikithat.com' : 'http://localhost:3000');
+
+  // Structured data for homepage
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Wikithat',
+    url: siteUrl,
+    description: 'Compare Wikipedia and Grokipedia articles side-by-side',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${siteUrl}/compare/{search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
+  const faqStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'What is Wikithat?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Wikithat is a comparison tool that lets you view Wikipedia and Grokipedia articles side-by-side to see the differences between traditional encyclopedia content and AI-powered knowledge.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'How does Wikithat work?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'Simply search for any topic, and Wikithat will display the Wikipedia and Grokipedia articles side-by-side. You can then compare the content, vote on which source you trust more, and see an AI-generated verdict powered by Grok.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'Is Wikithat affiliated with Wikipedia or Grokipedia?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'No, Wikithat is an independent comparison tool and is not affiliated with Wikipedia or Grokipedia.',
+        },
+      },
+    ],
+  };
+
   return (
     <main className="container mx-auto px-4 py-16">
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqStructuredData) }}
+      />
       <div className="mb-12 text-center">
         <h1 className="mb-4 text-5xl font-bold">
           <span className="text-blue-600">Wikipedia</span> vs{' '}

@@ -29,13 +29,39 @@ export async function generateMetadata({
   const { topic } = await params;
   const decodedTopic = decodeURIComponent(topic);
 
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://wikithat.com' : 'http://localhost:3000');
+  const pageUrl = `${siteUrl}/compare/${topic}`;
+  const description = `Compare ${decodedTopic} on Wikipedia and Grokipedia side-by-side. See the differences between traditional encyclopedia and AI-powered knowledge with our detailed comparison.`;
+
   return {
-    title: `${decodedTopic}: Wikipedia vs Grokipedia | Wikithat`,
-    description: `Compare ${decodedTopic} on Wikipedia and Grokipedia side-by-side. See the differences between traditional encyclopedia and AI-powered knowledge.`,
+    title: `${decodedTopic}: Wikipedia vs Grokipedia Comparison | Wikithat`,
+    description,
+    keywords: [`${decodedTopic}`, 'Wikipedia', 'Grokipedia', 'comparison', 'encyclopedia', 'AI knowledge', 'fact check'],
+    alternates: {
+      canonical: pageUrl,
+    },
     openGraph: {
       title: `${decodedTopic}: Wikipedia vs Grokipedia`,
-      description: `Compare ${decodedTopic} on Wikipedia and Grokipedia`,
+      description,
+      url: pageUrl,
+      siteName: 'Wikithat',
       type: 'article',
+      images: [
+        {
+          url: `${siteUrl}/og-image.png`,
+          width: 1200,
+          height: 630,
+          alt: `Compare ${decodedTopic} on Wikipedia vs Grokipedia`,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${decodedTopic}: Wikipedia vs Grokipedia`,
+      description,
+      images: [`${siteUrl}/og-image.png`],
     },
   };
 }
@@ -56,14 +82,70 @@ export default async function ComparePage({ params }: PageProps) {
   }
 
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://wikithat.com' : 'http://localhost:3000');
   const pageUrl = `${siteUrl}/compare/${topic}`;
 
   // Extract Wikipedia thumbnail to share with Grokipedia panel
   const sharedThumbnail = wikipediaData?.thumbnail || null;
 
+  // Structured data for SEO
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: `${decodedTopic}: Wikipedia vs Grokipedia Comparison`,
+    description: `Compare ${decodedTopic} on Wikipedia and Grokipedia side-by-side`,
+    url: pageUrl,
+    breadcrumb: {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: siteUrl,
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Compare',
+          item: `${siteUrl}/compare`,
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: decodedTopic,
+          item: pageUrl,
+        },
+      ],
+    },
+    mainEntity: {
+      '@type': 'Article',
+      headline: `${decodedTopic}: Wikipedia vs Grokipedia`,
+      description: `Detailed comparison of ${decodedTopic} across Wikipedia and Grokipedia`,
+      author: {
+        '@type': 'Organization',
+        name: 'Wikithat',
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Wikithat',
+        logo: {
+          '@type': 'ImageObject',
+          url: `${siteUrl}/logo.png`,
+        },
+      },
+    },
+  };
+
   return (
     <main className="container mx-auto px-4 py-8">
+      {/* Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+
       <div className="mb-8 max-w-2xl mx-auto">
         <SearchBar />
       </div>
