@@ -161,7 +161,7 @@ export default function GrokVerdict({
       );
     }
 
-    if (/^\*\*Grok says:\*\*$/i.test(trimmed)) {
+    if (/^\*\*Grokipedia says:\*\*$/i.test(trimmed)) {
       return (
         <div className="mt-8 mb-4 flex items-center gap-3 pb-2 border-b-2 border-purple-200">
           <Image
@@ -171,7 +171,7 @@ export default function GrokVerdict({
             height={LOGO_SIZES.icon.height}
             className="object-contain"
           />
-          <h4 className="text-2xl font-bold text-purple-700">Grok says:</h4>
+          <h4 className="text-2xl font-bold text-purple-700">Grokipedia says:</h4>
         </div>
       );
     }
