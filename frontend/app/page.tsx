@@ -5,13 +5,21 @@ import SearchBar from '@/components/SearchBar';
 import { seedTopics } from '@/lib/seed-topics';
 import { LOGOS, LOGO_SIZES } from '@/lib/logos';
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.NODE_ENV === 'production' ? 'https://wikithat.com' : 'http://localhost:3000');
+
 export const metadata: Metadata = {
   title: 'Wikithat - Compare Wikipedia vs Grokipedia Side-by-Side',
   description: 'Compare any topic side-by-side on Wikipedia and Grokipedia. See how traditional encyclopedia stacks up against AI-powered knowledge. Get AI-generated verdicts powered by Grok.',
   keywords: ['Wikipedia', 'Grokipedia', 'comparison', 'encyclopedia', 'AI knowledge', 'fact check', 'Grok AI', 'knowledge comparison'],
+  alternates: {
+    canonical: siteUrl,
+  },
   openGraph: {
     title: 'Wikithat - Compare Wikipedia vs Grokipedia',
     description: 'Compare any topic side-by-side. Traditional encyclopedia vs AI-powered knowledge.',
+    url: siteUrl,
     type: 'website',
     siteName: 'Wikithat',
     images: [
@@ -32,17 +40,23 @@ export const metadata: Metadata = {
 };
 
 export default function HomePage() {
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.NODE_ENV === 'production' ? 'https://wikithat.com' : 'http://localhost:3000');
-
   // Structured data for homepage
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'Wikithat',
+    alternateName: 'WikiThat - Wikipedia vs Grokipedia Comparison',
     url: siteUrl,
-    description: 'Compare Wikipedia and Grokipedia articles side-by-side',
+    description: 'Compare Wikipedia and Grokipedia articles side-by-side. A free comparison tool for encyclopedia content across traditional and AI-powered knowledge sources.',
+    about: {
+      '@type': 'Thing',
+      name: 'Knowledge Comparison Tool',
+      description: 'Tool for comparing Wikipedia and Grokipedia encyclopedia articles',
+    },
+    audience: {
+      '@type': 'Audience',
+      audienceType: 'Researchers, Students, Fact-checkers, Knowledge Seekers',
+    },
     potentialAction: {
       '@type': 'SearchAction',
       target: {
@@ -50,6 +64,12 @@ export default function HomePage() {
         urlTemplate: `${siteUrl}/compare/{search_term_string}`,
       },
       'query-input': 'required name=search_term_string',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Wikithat',
+      url: siteUrl,
+      description: 'Free tool to compare Wikipedia and Grokipedia side-by-side',
     },
   };
 

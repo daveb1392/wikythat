@@ -89,13 +89,18 @@ export default async function ComparePage({ params }: PageProps) {
   // Extract Wikipedia thumbnail to share with Grokipedia panel
   const sharedThumbnail = wikipediaData?.thumbnail || null;
 
-  // Structured data for SEO
+  // Structured data for SEO and AI crawlers
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
     name: `${decodedTopic}: Wikipedia vs Grokipedia Comparison`,
-    description: `Compare ${decodedTopic} on Wikipedia and Grokipedia side-by-side`,
+    description: `Compare ${decodedTopic} on Wikipedia and Grokipedia side-by-side. See differences between traditional encyclopedia and AI-powered knowledge sources.`,
     url: pageUrl,
+    about: {
+      '@type': 'Thing',
+      name: decodedTopic,
+      description: `Comparison of ${decodedTopic} across Wikipedia and Grokipedia platforms`,
+    },
     breadcrumb: {
       '@type': 'BreadcrumbList',
       itemListElement: [
@@ -121,8 +126,12 @@ export default async function ComparePage({ params }: PageProps) {
     },
     mainEntity: {
       '@type': 'Article',
-      headline: `${decodedTopic}: Wikipedia vs Grokipedia`,
-      description: `Detailed comparison of ${decodedTopic} across Wikipedia and Grokipedia`,
+      headline: `${decodedTopic}: Wikipedia vs Grokipedia Comparison`,
+      description: `Detailed side-by-side comparison of ${decodedTopic} across Wikipedia (traditional encyclopedia) and Grokipedia (AI-powered knowledge base)`,
+      about: {
+        '@type': 'Thing',
+        name: decodedTopic,
+      },
       author: {
         '@type': 'Organization',
         name: 'Wikithat',
@@ -130,11 +139,15 @@ export default async function ComparePage({ params }: PageProps) {
       publisher: {
         '@type': 'Organization',
         name: 'Wikithat',
+        url: siteUrl,
         logo: {
           '@type': 'ImageObject',
           url: `${siteUrl}/logo.png`,
         },
       },
+      isAccessibleForFree: true,
+      genre: 'Comparison',
+      keywords: `${decodedTopic}, Wikipedia, Grokipedia, comparison, encyclopedia, AI knowledge, fact check`,
     },
   };
 

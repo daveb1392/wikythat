@@ -50,6 +50,12 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  other: {
+    // AI crawler meta tags for ChatGPT, Claude, Perplexity, etc.
+    'ai-content-declaration': 'ai-generated-verdict-only',
+    'content-type': 'comparison-tool',
+    'topic-categories': 'encyclopedia,ai,knowledge-comparison,fact-checking',
+  },
   verification: {
     // Add your verification codes here when available
     // google: 'your-google-verification-code',
