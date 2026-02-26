@@ -13,24 +13,36 @@ interface ComparisonPanelProps {
   } | null;
 }
 
-// Extract first paragraph and truncate to character limit
-function truncateToFirstParagraph(text: string, maxChars: number = 400): string {
+// Extract substantial content for SSR (more content = better for SEO)
+function extractContent(text: string, maxChars: number = 1200): string {
   // Split by double newlines to get paragraphs
   const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 0);
 
   // Skip common headers (Fact-checked by Grok, timestamps, short titles)
-  // Find the first substantial paragraph (> 100 chars is likely real content)
-  const contentParagraph = paragraphs.find(p => p.length > 100) || paragraphs[0] || text;
+  // Collect substantial paragraphs until we hit the character limit
+  let result = '';
+  for (const paragraph of paragraphs) {
+    // Skip very short paragraphs that are likely headers
+    if (paragraph.length < 50 && result.length === 0) continue;
 
-  // Truncate to max characters
-  if (contentParagraph.length <= maxChars) {
-    return contentParagraph;
+    if (result.length + paragraph.length > maxChars && result.length > 0) {
+      break;
+    }
+    result += (result ? '\n\n' : '') + paragraph;
   }
 
-  // Truncate at word boundary
-  const truncated = contentParagraph.substring(0, maxChars);
-  const lastSpace = truncated.lastIndexOf(' ');
-  return truncated.substring(0, lastSpace > 0 ? lastSpace : maxChars) + '...';
+  if (!result) {
+    result = paragraphs[0] || text;
+  }
+
+  // Truncate at word boundary if still too long
+  if (result.length > maxChars) {
+    const truncated = result.substring(0, maxChars);
+    const lastSpace = truncated.lastIndexOf(' ');
+    return truncated.substring(0, lastSpace > 0 ? lastSpace : maxChars) + '...';
+  }
+
+  return result;
 }
 
 export default function ComparisonPanel({
@@ -112,7 +124,7 @@ export default function ComparisonPanel({
       <h3 className="mb-3 text-xl font-semibold">{data.title}</h3>
 
       <p className="mb-4 flex-1 whitespace-pre-line text-gray-700">
-        {truncateToFirstParagraph(data.extract)}
+        {extractContent(data.extract)}
       </p>
 
       {url && (

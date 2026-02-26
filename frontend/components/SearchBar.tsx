@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { slugify } from '@/lib/slugify';
 
 export default function SearchBar() {
   const [query, setQuery] = useState('');
@@ -55,13 +56,13 @@ export default function SearchBar() {
       // User selected a suggestion with arrow keys
       const searchTopic = suggestions[selectedIndex];
       setIsNavigating(true);
-      router.push(`/compare/${encodeURIComponent(searchTopic)}`);
+      router.push(`/compare/${slugify(searchTopic)}`);
       setSuggestions([]);
     } else if (suggestions.length > 0) {
       // Auto-select first suggestion when user presses Enter
       const searchTopic = suggestions[0];
       setIsNavigating(true);
-      router.push(`/compare/${encodeURIComponent(searchTopic)}`);
+      router.push(`/compare/${slugify(searchTopic)}`);
       setSuggestions([]);
     }
     // If no suggestions, do nothing (prevents navigation to invalid topics)
@@ -85,7 +86,7 @@ export default function SearchBar() {
   const handleSuggestionClick = (suggestion: string) => {
     setQuery(suggestion);
     setIsNavigating(true); // Show loading modal
-    router.push(`/compare/${encodeURIComponent(suggestion)}`);
+    router.push(`/compare/${slugify(suggestion)}`);
     setSuggestions([]);
   };
 

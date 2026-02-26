@@ -88,6 +88,10 @@ export default function RootLayout({
                   priority
                 />
               </Link>
+              <nav className="hidden sm:flex items-center gap-4 text-sm font-medium text-gray-600">
+                <Link href="/topics" className="hover:text-blue-600 transition">Topics</Link>
+                <Link href="/blog" className="hover:text-blue-600 transition">Blog</Link>
+              </nav>
               <DonationButton />
             </div>
           </div>
@@ -115,15 +119,24 @@ export default function RootLayout({
               </div> */}
 
               <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-600 mb-4">
+                <Link href="/topics" className="hover:text-blue-600 transition">Topics</Link>
+                <span className="hidden sm:inline">&middot;</span>
+                <Link href="/blog" className="hover:text-blue-600 transition">Blog</Link>
+                <span className="hidden sm:inline">&middot;</span>
                 <span>© {new Date().getFullYear()} Wikithat</span>
-                <span className="hidden sm:inline">•</span>
-                <span>Data from Wikipedia & Grokipedia</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500 mb-2">
+                <Link href="/about" className="hover:text-blue-600 transition">About</Link>
+                <span className="hidden sm:inline">&middot;</span>
+                <Link href="/privacy" className="hover:text-blue-600 transition">Privacy Policy</Link>
+                <span className="hidden sm:inline">&middot;</span>
+                <Link href="/terms" className="hover:text-blue-600 transition">Terms</Link>
               </div>
               <p className="text-xs text-gray-500 mb-2">
                 Not affiliated with Wikipedia or Grokipedia
               </p>
               <p className="text-xs text-gray-600 font-medium">
-                Powered by Grok · Built with ❤️
+                Powered by Grok
               </p>
             </div>
           </div>

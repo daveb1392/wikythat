@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import ComparisonPanel from '@/components/ComparisonPanel';
 import GrokVerdict from '@/components/GrokVerdict';
@@ -9,71 +10,79 @@ import TopicMappingWrapper from '@/components/TopicMappingWrapper';
 import { fetchWikipediaArticle } from '@/lib/wikipedia';
 import { fetchGrokipediaArticle } from '@/lib/grokipedia';
 import { seedTopics } from '@/lib/seed-topics';
+import { slugify, deslugify } from '@/lib/slugify';
 
 interface PageProps {
   params: Promise<{ topic: string }>;
 }
 
-export const revalidate = 0; // Always fetch fresh data
-export const dynamic = 'force-dynamic'; // Disable static generation
+export const revalidate = 86400; // ISR: revalidate every 24 hours
 
 export async function generateStaticParams() {
   return seedTopics.map((topic) => ({
-    topic: encodeURIComponent(topic),
+    topic: slugify(topic),
   }));
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { topic } = await params;
-  const decodedTopic = decodeURIComponent(topic);
+  const { topic: slug } = await params;
+  const displayTopic = deslugify(slug);
 
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.NODE_ENV === 'production' ? 'https://wikithat.com' : 'http://localhost:3000');
-  const pageUrl = `${siteUrl}/compare/${topic}`;
-  const description = `Compare ${decodedTopic} on Wikipedia and Grokipedia side-by-side. See the differences between traditional encyclopedia and AI-powered knowledge with our detailed comparison.`;
+  const pageUrl = `${siteUrl}/compare/${slug}`;
+  const description = `Compare ${displayTopic} on Wikipedia and Grokipedia side-by-side. See the differences between traditional encyclopedia and AI-powered knowledge with our detailed comparison.`;
 
   return {
-    title: `${decodedTopic}: Wikipedia vs Grokipedia Comparison | Wikithat`,
+    title: `${displayTopic}: Wikipedia vs Grokipedia Comparison`,
     description,
-    keywords: [`${decodedTopic}`, 'Wikipedia', 'Grokipedia', 'comparison', 'encyclopedia', 'AI knowledge', 'fact check'],
+    keywords: [`${displayTopic}`, 'Wikipedia', 'Grokipedia', 'comparison', 'encyclopedia', 'AI knowledge', 'fact check'],
     alternates: {
       canonical: pageUrl,
     },
     openGraph: {
-      title: `${decodedTopic}: Wikipedia vs Grokipedia`,
+      title: `${displayTopic}: Wikipedia vs Grokipedia`,
       description,
       url: pageUrl,
       siteName: 'Wikithat',
       type: 'article',
       images: [
         {
-          url: `${siteUrl}/og-image.png`,
+          url: `${siteUrl}/opengraph-image`,
           width: 1200,
           height: 630,
-          alt: `Compare ${decodedTopic} on Wikipedia vs Grokipedia`,
+          alt: `Compare ${displayTopic} on Wikipedia vs Grokipedia`,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${decodedTopic}: Wikipedia vs Grokipedia`,
+      title: `${displayTopic}: Wikipedia vs Grokipedia`,
       description,
-      images: [`${siteUrl}/og-image.png`],
+      images: [`${siteUrl}/opengraph-image`],
     },
   };
 }
 
-export default async function ComparePage({ params }: PageProps) {
-  const { topic } = await params;
-  const decodedTopic = decodeURIComponent(topic);
+function getRelatedTopics(currentTopic: string, count: number = 6): string[] {
+  const current = currentTopic.toLowerCase();
+  return seedTopics
+    .filter((t) => t.toLowerCase() !== current)
+    .sort(() => 0.5 - Math.random())
+    .slice(0, count);
+}
 
-  // Fetch both APIs in parallel
+export default async function ComparePage({ params }: PageProps) {
+  const { topic: slug } = await params;
+  const displayTopic = deslugify(slug);
+
+  // Fetch both APIs in parallel using the display title
   const [wikipediaData, grokipediaData] = await Promise.all([
-    fetchWikipediaArticle(decodedTopic),
-    fetchGrokipediaArticle(decodedTopic),
+    fetchWikipediaArticle(displayTopic),
+    fetchGrokipediaArticle(displayTopic),
   ]);
 
   // Show 404 only if Wikipedia fails (Wikipedia is primary source)
@@ -84,22 +93,24 @@ export default async function ComparePage({ params }: PageProps) {
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.NODE_ENV === 'production' ? 'https://wikithat.com' : 'http://localhost:3000');
-  const pageUrl = `${siteUrl}/compare/${topic}`;
+  const pageUrl = `${siteUrl}/compare/${slug}`;
 
   // Extract Wikipedia thumbnail to share with Grokipedia panel
   const sharedThumbnail = wikipediaData?.thumbnail || null;
+
+  const relatedTopics = getRelatedTopics(displayTopic);
 
   // Structured data for SEO and AI crawlers
   const structuredData = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: `${decodedTopic}: Wikipedia vs Grokipedia Comparison`,
-    description: `Compare ${decodedTopic} on Wikipedia and Grokipedia side-by-side. See differences between traditional encyclopedia and AI-powered knowledge sources.`,
+    name: `${displayTopic}: Wikipedia vs Grokipedia Comparison`,
+    description: `Compare ${displayTopic} on Wikipedia and Grokipedia side-by-side. See differences between traditional encyclopedia and AI-powered knowledge sources.`,
     url: pageUrl,
     about: {
       '@type': 'Thing',
-      name: decodedTopic,
-      description: `Comparison of ${decodedTopic} across Wikipedia and Grokipedia platforms`,
+      name: displayTopic,
+      description: `Comparison of ${displayTopic} across Wikipedia and Grokipedia platforms`,
     },
     breadcrumb: {
       '@type': 'BreadcrumbList',
@@ -119,18 +130,18 @@ export default async function ComparePage({ params }: PageProps) {
         {
           '@type': 'ListItem',
           position: 3,
-          name: decodedTopic,
+          name: displayTopic,
           item: pageUrl,
         },
       ],
     },
     mainEntity: {
       '@type': 'Article',
-      headline: `${decodedTopic}: Wikipedia vs Grokipedia Comparison`,
-      description: `Detailed side-by-side comparison of ${decodedTopic} across Wikipedia (traditional encyclopedia) and Grokipedia (AI-powered knowledge base)`,
+      headline: `${displayTopic}: Wikipedia vs Grokipedia Comparison`,
+      description: `Detailed side-by-side comparison of ${displayTopic} across Wikipedia (traditional encyclopedia) and Grokipedia (AI-powered knowledge base)`,
       about: {
         '@type': 'Thing',
-        name: decodedTopic,
+        name: displayTopic,
       },
       author: {
         '@type': 'Organization',
@@ -147,7 +158,7 @@ export default async function ComparePage({ params }: PageProps) {
       },
       isAccessibleForFree: true,
       genre: 'Comparison',
-      keywords: `${decodedTopic}, Wikipedia, Grokipedia, comparison, encyclopedia, AI knowledge, fact check`,
+      keywords: `${displayTopic}, Wikipedia, Grokipedia, comparison, encyclopedia, AI knowledge, fact check`,
     },
   };
 
@@ -163,9 +174,16 @@ export default async function ComparePage({ params }: PageProps) {
         <SearchBar />
       </div>
 
-      <h1 className="mb-8 text-center text-4xl font-bold">
-        Comparing: {decodedTopic}
+      <h1 className="mb-4 text-center text-4xl font-bold">
+        Comparing: {displayTopic}
       </h1>
+
+      {/* SEO intro paragraph - unique content per page */}
+      <p className="mb-8 text-center text-gray-600 max-w-3xl mx-auto">
+        How does <strong>Wikipedia</strong> describe {displayTopic} compared to <strong>Grokipedia</strong>,
+        the AI-powered encyclopedia by xAI? Read both summaries below, then vote on which source
+        you find more accurate and trustworthy.
+      </p>
 
       <div className="mb-8 grid gap-8 md:grid-cols-2">
         <ComparisonPanel source="wikipedia" data={wikipediaData} sharedThumbnail={sharedThumbnail} />
@@ -178,7 +196,7 @@ export default async function ComparePage({ params }: PageProps) {
           <div className="flex items-center justify-center gap-2 text-sm text-gray-700">
             <span>Wrong Grokipedia match?</span>
             <TopicMappingWrapper
-              wikipediaTopic={decodedTopic}
+              wikipediaTopic={displayTopic}
               currentSlug={grokipediaData.url?.split('/').pop()}
             />
           </div>
@@ -188,12 +206,12 @@ export default async function ComparePage({ params }: PageProps) {
       {wikipediaData && grokipediaData && (
         <>
           <GrokVerdict
-            topic={decodedTopic}
-            wikipediaUrl={wikipediaData.content_urls?.desktop.page || `https://en.wikipedia.org/wiki/${topic}`}
-            grokipediaUrl={grokipediaData.url || `https://grokipedia.com/page/${topic}`}
+            topic={displayTopic}
+            wikipediaUrl={wikipediaData.content_urls?.desktop.page || `https://en.wikipedia.org/wiki/${slug}`}
+            grokipediaUrl={grokipediaData.url || `https://grokipedia.com/page/${slug}`}
           />
 
-          <TrustCounter topic={decodedTopic} />
+          <TrustCounter topic={displayTopic} />
         </>
       )}
 
@@ -207,7 +225,7 @@ export default async function ComparePage({ params }: PageProps) {
             We couldn&apos;t automatically find the matching Grokipedia article.
             Help us by selecting the correct topic:
           </p>
-          <TopicMappingWrapper wikipediaTopic={decodedTopic} />
+          <TopicMappingWrapper wikipediaTopic={displayTopic} />
           <p className="text-gray-500 text-sm mt-4">
             Or try searching for another topic!
           </p>
@@ -218,8 +236,34 @@ export default async function ComparePage({ params }: PageProps) {
       )}
 
       <div className="mt-8">
-        <ShareButtons topic={decodedTopic} url={pageUrl} />
+        <ShareButtons topic={displayTopic} url={pageUrl} />
       </div>
+
+      {/* Related Comparisons - Internal Linking */}
+      <section className="mt-12 border-t pt-8">
+        <h2 className="mb-6 text-center text-2xl font-bold">
+          More Comparisons
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+          {relatedTopics.map((topic) => (
+            <Link
+              key={topic}
+              href={`/compare/${slugify(topic)}`}
+              className="rounded-lg border border-gray-200 bg-white p-4 text-center font-medium text-gray-900 transition hover:border-blue-500 hover:shadow-md"
+            >
+              {topic}
+            </Link>
+          ))}
+        </div>
+        <div className="mt-4 text-center">
+          <Link
+            href="/"
+            className="text-blue-600 hover:underline"
+          >
+            View all comparisons
+          </Link>
+        </div>
+      </section>
     </main>
   );
 }

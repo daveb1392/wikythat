@@ -1,0 +1,16 @@
+{
+  "name": "Wikithat",
+  "short_name": "Wikithat",
+  "description": "Compare Wikipedia and Grokipedia articles side-by-side",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/favicon_wikithat.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    }
+  ]
+}
